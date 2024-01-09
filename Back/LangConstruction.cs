@@ -13,7 +13,7 @@ namespace RightVisionBot.Back
     {
         public static string GetPhrase(string phraseName, string language)
         {
-            string langFilePath = Path.Combine("lang", $"{language}.json");
+            string langFilePath = Path.Combine("../../../lang", $"{language}.json");
             string json = File.ReadAllText(langFilePath);
             var phrases = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
 
@@ -21,7 +21,7 @@ namespace RightVisionBot.Back
                 return phrases[phraseName];
             else
             {
-                string _langFilePath = Path.Combine("lang", "ru.json");
+                string _langFilePath = Path.Combine("../../../lang", "ru.json");
                 string _json = File.ReadAllText(_langFilePath);
                 var _phrases = JsonConvert.DeserializeObject<Dictionary<string, string>>(_json);
 
