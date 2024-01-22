@@ -7,11 +7,7 @@ namespace RightVisionBot.Back
     internal class sql
     {
         private MySqlConnection db;
-
-        public sql(string connection)
-        {
-            db = new MySqlConnection(connection);
-        }
+        public sql(string connection) => db = new MySqlConnection(connection);
 
         public List<string> Read(string query, string columnName)
         {
@@ -27,9 +23,7 @@ namespace RightVisionBot.Back
                         List<List<string>> data = new();
                         List<string> rows = new();
                         while (reader.Read())
-                        {
                             rows.Add(reader[columnName].ToString());
-                        }
 
                         reader.Close();
                         db.Close();

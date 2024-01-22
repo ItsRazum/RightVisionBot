@@ -27,12 +27,10 @@ namespace RightVisionBot.Back.Commands.Admin
                 case "авторизовать":
                     if (message.From.Id == 901152811 && message.ReplyToMessage != null)
                     {
-                        var curatorQuery = $"SELECT * FROM `RV_Curators` WHERE `userId` = '{message.ReplyToMessage.From.Id}';";
-                        List<string> CuratorId = Program.database.Read(curatorQuery, "id");
+                        var CuratorId = Program.database.Read($"SELECT * FROM `RV_Curators` WHERE `userId` = '{message.ReplyToMessage.From.Id}';", "id");
                         if (CuratorId != null)
                         {
-                            var query = $"INSERT INTO `RV_Curators` (`id`) VALUES ('{message.ReplyToMessage.From.Id}');";
-                            Program.database.Read(query, "");
+                            Program.database.Read($"INSERT INTO `RV_Curators` (`id`) VALUES ('{message.ReplyToMessage.From.Id}');", "");
                             await botClient.SendTextMessageAsync(message.Chat, "Пользователь авторизован. Теперь он может брать кураторство над кандидатами (судьи и участники)");
                         }
                         else
@@ -43,6 +41,9 @@ namespace RightVisionBot.Back.Commands.Admin
 
             if (message.Text.StartsWith("/news "))
                 await News.Common(botClient, message, rvUser);
+
+            else if (message.Text.ToLower().StartsWith("назначить "))
+                await Grant.Execute(botClient, message, rvUser);
 
             else if (message.Text.StartsWith("+reward "))
                 await Reward.Give(botClient, message);

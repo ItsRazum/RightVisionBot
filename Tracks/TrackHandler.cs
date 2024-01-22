@@ -28,18 +28,15 @@ namespace RightVisionBot.Tracks
         public static void Send(ITelegramBotClient botClient, Message message)
         {
             long userId = message.From.Id;
-            switch (GetTrack(userId) != null)
-            {
-                case true:
+            if (GetTrack(userId) != null)
                     TrackCard(true, botClient, message);
-                    break;
-                case false:
+            else
+            {
                     botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_CreatingCard", RvUser.Get(userId).Lang));
                     TrackInfo track = new() { UserId = userId };
                     Tracks.Add(track);
                     database.Read($"INSERT INTO `RV_Tracks`(`userId`) VALUES ({userId});", "");
                     TrackCard(false, botClient, message);
-                    break;
             }
         }
 
@@ -64,7 +61,7 @@ namespace RightVisionBot.Tracks
                 { ResizeKeyboard = true };
             */
             ReplyKeyboardMarkup keyboard = new(new[]
-                { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) } })
+                    { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) } })
                 { ResizeKeyboard = true };
 
             Program.updateRvLocation(userId, RvLocation.TrackCard);
@@ -109,7 +106,7 @@ namespace RightVisionBot.Tracks
             return null;
         }
 
-        public static TrackInfo? GetTrack(long userId)
+        public static TrackInfo GetTrack(long userId)
         {
             foreach (var trackInfo in Tracks)
             {
@@ -117,46 +114,6 @@ namespace RightVisionBot.Tracks
                     return trackInfo;
             }
             return null;
-        }
-
-        public static void SendAllFiles(ITelegramBotClient botClient)
-        {
-            var files = database.ExtRead("SELECT * FROM RV_Tracks;", new[] { "userId", "track", "image", "text" });
-
-            botClient.SendTextMessageAsync(-1001968408177, "Отправка треков");
-            foreach (var file in files)
-            {
-                var track = database.Read($"SELECT `track` FROM `RV_Members` WHERE `userId` = '{file["userId"]}';", "track");
-                try
-                {
-                    botClient.SendDocumentAsync(-1001968408177, new InputFileId(file["track"].ToString()),
-                        caption:
-                        $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                    botClient.SendPhotoAsync(-1001968408177, new InputFileId(file["image"].ToString()),
-                        caption:
-                        $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                    botClient.SendDocumentAsync(-1001968408177, new InputFileId(file["text"].ToString()),
-                        caption:
-                        $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                }
-                catch
-                {
-                    try
-                    {
-                        botClient.SendDocumentAsync(-1001968408177, new InputFileId(file["track"].ToString()),
-                            caption:
-                            $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                        botClient.SendPhotoAsync(-1001968408177, new InputFileId(file["image"].ToString()),
-                            caption:
-                            $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                    }
-                    catch
-                    {
-                        botClient.SendTextMessageAsync(-1001968408177, "Текста и обложки нет, пропускаю...");
-                    }
-                }
-            }
-            botClient.SendTextMessageAsync(-1001968408177, "Готово");
         }
 
         public static void SendFilesByOne(ITelegramBotClient botClient, int number)

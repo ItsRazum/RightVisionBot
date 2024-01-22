@@ -55,7 +55,7 @@ namespace RightVisionBot.Common;
             Permission.Mute,                 Permission.Blacklist,
             Permission.PreListening,         Permission.EditPermissions,
             Permission.Cancel,               Permission.Block,
-            Permission.Rewarding
+            Permission.Rewarding,            Permission.Grant
         };
     }
 
@@ -118,4 +118,6 @@ public enum Permission
     Audit,
     /// <summary>Право на выдачу наград</summary>
     Rewarding,
+    /// <summary>Право на назначение пользователя на должность</summary>
+    Grant,
 }
