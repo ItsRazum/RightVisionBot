@@ -19,8 +19,8 @@ namespace RightVisionBot.Back
     class Program
     {
         public static volatile List<RvUser> users = new();
-        public static readonly ITelegramBotClient botClient = new TelegramBotClient("6504108595:AAEMZ2qKp4do42oucAXEuLK3rZoEwGfRJig");
-        public static readonly sql database = new("server=127.0.0.1;uid=demid;pwd=Z2r757vnGK9J;database=phpmyadmin");
+        public static readonly ITelegramBotClient botClient = new TelegramBotClient("Токен");
+        public static readonly sql database = new("Адрес MySQL");
 
         static async Task Main(string[] args)
         {
