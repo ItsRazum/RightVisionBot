@@ -13,38 +13,6 @@ namespace RightVisionBot.Back
             db = new MySqlConnection(connection);
         }
 
-
-        public async Task<List<Dictionary<string, object>>> Read(MySqlCommand Command)
-        {
-            Console.WriteLine("Подключение к базе...");
-            try
-            {
-                db.Open();
-                Command.Connection = db;
-                using DbDataReader reader = await Command.ExecuteReaderAsync();
-                Console.WriteLine("Подключено. Извлечение данных...");
-                List<Dictionary<string, object>> results = new();
-                while (await reader.ReadAsync())
-                {
-                    Dictionary<string, object> row = new Dictionary<string, object>();
-                    for (int i = 0; i < reader.FieldCount; i++)
-                    {
-                        row.Add(reader.GetName(i), reader.GetValue(i));
-                    }
-
-                    results.Add(row);
-                }
-
-                Console.WriteLine("Данные получены");
-                return results;
-            }
-            catch (MySqlException ex)
-            {
-                Console.WriteLine("Произошла ошибка при подключении к базе данных! (Read)");
-                throw ex;
-            }
-        }
-
         public List<string> Read(string query, string columnName)
         {
             try
