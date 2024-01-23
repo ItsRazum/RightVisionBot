@@ -75,7 +75,9 @@ namespace RightVisionBot.UI
                 }
             }
             catch
-            { return "Не удалось получить статус!"; }
+            {
+                return "Не удалось получить статус!";
+            }
         }
 
         private static string GetFormsStatus(Message message)
@@ -100,91 +102,52 @@ namespace RightVisionBot.UI
         {
             switch (rvUser.Status)
             {
-                case Status.Member:
-                    return Language.GetPhrase("Profile_Member_Header", rvUser.Lang);
-                    break;
-                case Status.Critic:
-                    return Language.GetPhrase("Profile_Critic_Header", rvUser.Lang);
-                    break;
-                case Status.CriticAndMember:
-                    return Language.GetPhrase("Profile_CriticAndMember_Header", rvUser.Lang);
-                    break;
+                case Status.Member:          return Language.GetPhrase("Profile_Member_Header", rvUser.Lang);
+                case Status.Critic:          return Language.GetPhrase("Profile_Critic_Header", rvUser.Lang);
+                case Status.CriticAndMember: return Language.GetPhrase("Profile_CriticAndMember_Header", rvUser.Lang);
                 default:
                     return Language.GetPhrase("Profile_User_Layout", rvUser.Lang);
-                    break;
             }
         }
 
         private static string RoleAsString(RvUser rvUser)
         {
-            string role = string.Empty;
             switch (rvUser.Role)
             {
-                case Role.Admin:
-                    role = "Главный организатор\n";
-                    break;
-                case Role.Moderator:
-                    role = "Модератор\n";
-                    break;
-                case Role.TechAdmin:
-                    role = "Техадмин\n";
-                    break;
-                case Role.Developer:
-                    role = "Разработчик\n";
-                    break;
-                case Role.Curator:
-                    role = "Куратор\n";
-                    break;
-                case Role.Designer:
-                    role = "Дизайнер\n";
-                    break;
-                case Role.Translator:
-                    role = "Переводчик\n";
-                    break;
+                case Role.Admin:      return "Главный организатор\n";
+                case Role.Moderator:  return "Модератор\n";
+                case Role.TechAdmin:  return "Техадмин\n";
+                case Role.Developer:  return "Разработчик\n";
+                case Role.Curator:    return "Куратор\n";
+                case Role.Designer:   return "Дизайнер\n";
+                case Role.Translator: return "Переводчик\n";
+                default:
+                    return string.Empty;
             }
-            return role;
         }
 
         private static string CategoryFormat(long userId)
         {
 
-            switch (RvUser.Get(userId).Category)
+            return RvUser.Get(userId).Category switch
             {
-                case "bronze":
-                    return "🥉Bronze";
-                    break;
-                case "steel":
-                    return "🥈Steel";
-                    break;
-                case "gold":
-                    return "🥇Gold";
-                    break;
-                case "brilliant":
-                    return "💎Brilliant";
-                    break;
-                default:
-                    return string.Empty;
-                    break;
-            }
+                "bronze" =>    "🥉Bronze",
+                "steel" =>     "🥈Steel",
+                "gold" =>      "🥇Gold",
+                "brilliant" => "💎Brilliant",
+                _ => string.Empty
+            };
         }
 
         private static ReplyKeyboardMarkup KeyboardFormat(long userId, Status status)
         {
-            switch (status)
+            return status switch
             {
-                case Status.Member:
-                    return Keyboard.ForMember(userId);
-                    break;
-                case Status.Critic:
-                    return Keyboard.ForCritic(userId);
-                    break;
-                case Status.CriticAndMember:
-                    return Keyboard.ForCriticAndMember(userId);
-                    break;
-                default:
-                    return Keyboard.ForOther(userId);
-                    break;
-            }
+                Status.Member => Keyboard.ForMember(userId),
+                Status.Critic => Keyboard.ForCritic(userId),
+                Status.CriticAndMember => Keyboard.ForCriticAndMember(userId),
+                _ => Keyboard.ForOther(userId)
+            };
         }
 
         private static string RewardsFormat(RvUser rvUser)
@@ -222,9 +185,7 @@ namespace RightVisionBot.UI
             switch (rvUser.Status)
             {
                 case Status.User:
-                    string userLayout = Language.GetPhrase("Profile_User_Layout", lang) + optional;
-                    return header + RoleFormat(rvUser) + userLayout;
-                    break;
+                    return header + RoleFormat(rvUser) + optional;
 
                 case Status.Member:
                     string memberLayout = string.Format(Language.GetPhrase("Profile_Member_Layout", lang),
@@ -233,13 +194,11 @@ namespace RightVisionBot.UI
                         /*2*/RvMember.Get(getId).City,
                         /*3*/RequestTrackAccess(message)) + optional;
                     return header + RoleFormat(rvUser) + memberLayout;
-                    break;
 
                 case Status.Critic:
                     string criticLayout = string.Format(Language.GetPhrase("Profile_Critic_Layout", lang),
                         /*0*/CategoryFormat(getId)) + optional;
                     return header + RoleFormat(rvUser) + criticLayout;
-                    break;
 
                 case Status.CriticAndMember:
                     string criticAndMemberLayout = string.Format(Language.GetPhrase("Profile_CriticAndMember_Layout", lang),
@@ -248,7 +207,6 @@ namespace RightVisionBot.UI
                         /*2*/RvMember.Get(getId).City,
                         /*3*/RequestTrackAccess(message)) + optional;
                     return header + RoleFormat(rvUser) + criticAndMemberLayout;
-                    break;
                 default:
                     return "Неизвестная ошибка";
             }

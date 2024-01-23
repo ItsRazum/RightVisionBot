@@ -33,8 +33,7 @@ namespace RightVisionBot.Back.Forms
                     if (critic.Name == "0")
                         if (message.Text == back)
                         {
-                            var query = $"DELETE FROM `RV_Critics` WHERE `userId` = '{userId}';";
-                            database.Read(query, "");
+                            database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{userId}';", "");
                             CriticRoot.newCritics.Remove(critic);
                             botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} отменил заполнение заявки на судейство\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
                             HubClass.SelectRole(botClient, message);
@@ -42,11 +41,7 @@ namespace RightVisionBot.Back.Forms
                         else
                         {
                             critic.Name = message.Text;
-                            {
-                                var query = $"UPDATE `RV_Critics` SET `name` = '{message.Text}' WHERE `userId` = {userId};";
-                                database.Read(query, "");
-                                botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterLink", RvUser.Get(userId).Lang), message.Text), replyMarkup: backButton);
-                            }
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterLink", RvUser.Get(userId).Lang), message.Text), replyMarkup: backButton);
                         }
 
                     else if (critic.Name != "0" && critic.Link == "0")
@@ -90,7 +85,6 @@ namespace RightVisionBot.Back.Forms
                     else if (critic.About != "0" && critic.WhyYou == "0")
                         if (message.Text == back)
                         {
-                            { var query = $"UPDATE `RV_Members` SET `about` = '0' WHERE `userId` = {userId};"; database.Read(query, ""); }
                             critic.About = "0";
                             botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterAboutYou", RvUser.Get(userId).Lang), critic.Name), replyMarkup: backButton);
                         }

@@ -34,8 +34,7 @@ namespace RightVisionBot.Back.Forms
                     if (member.Name == "0")
                         if (message.Text == back)
                         {
-                            var query = $"DELETE FROM `RV_Members` WHERE `userId` = '{userId}';";
-                            database.Read(query, "");
+                            database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{userId}';", "");
                             MemberRoot.newMembers.Remove(RvMember.Get(userId));
                             botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} отменил заполнение заявки на участие\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
                             HubClass.SelectRole(botClient, message);
