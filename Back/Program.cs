@@ -19,8 +19,8 @@ namespace RightVisionBot.Back
     class Program
     {
         public static volatile List<RvUser> users = new();
-        public static readonly ITelegramBotClient botClient = new TelegramBotClient("6504108595:AAH7E0rdvgQK6m8NZ8XpcsGDzC-9JNbfctU");
-        public static readonly sql database = new("server=127.0.0.1;uid=demid;pwd=Z2r757vnGK9J;database=phpmyadmin");
+        public static readonly ITelegramBotClient botClient = new TelegramBotClient("Токен");
+        public static readonly sql database = new("Адрес MySQL");
 
         static async Task Main(string[] args)
         {
@@ -226,7 +226,7 @@ namespace RightVisionBot.Back
 
                                 else if (RvMember.Get(userId) != null && RvMember.Get(userId).Status is not "denied" or "waiting" or "unfinished")
                                 {
-                                    if (message.Text == Language.GetPhrase("Keyboard_Choice_SendTrack", rvUser.Lang) && message.Chat.Type == ChatType.Private)
+                                    if (message.Text == Language.GetPhrase("Keyboard_Choice_SendTrack", rvUser.Lang) && message.Chat.Type == ChatType.Private && RvMember.Get(userId).Status is not "denied" or "waiting" or "unfinished")
                                     {
                                         if (RvMember.Get(userId) != null) 
                                             Track.Send(botClient, message);
