@@ -20,7 +20,7 @@ public class RvUser
     public RvLocation RvLocation { get => _rvLocation; set { _rvLocation = value; newString(value.ToString(), nameof(RvLocation)); } }
 
     private Role _role;
-    public Role Role { get => _role; set { _role = value; newString(value.ToString(), nameof(Role)); } }
+    public Role Role { get => _role; set { _role = value; newRole(value.ToString(), nameof(Role)); } }
 
     private string _category = "none";
     public string Category { get => _category; set { _category = value; newString(value, nameof(Category)); } }
@@ -52,6 +52,19 @@ public class RvUser
         return sb.ToString();
     }
 
+    private void newRole(string value, string property)
+    {
+        switch (Role)
+        {
+            case Role.Admin:     Permissions = PermissionLayouts.Admin;     break;
+            case Role.Moderator: Permissions = PermissionLayouts.Moderator; break;
+            case Role.Curator:   Permissions = PermissionLayouts.Curator;   break;
+            case Role.Developer: Permissions = PermissionLayouts.Developer; break;
+        }
+
+        newString(value, property);
+    }
+
     private string RewardsAsString(List<Dictionary<int, string>> rewards)
     {
         StringBuilder sb = new StringBuilder();
@@ -75,6 +88,13 @@ public class RvUser
             foreach (Permission permission in hashSet)
                 newPermissions.Add(permission);
 
+        this.Permissions = newPermissions;
+    }
+
+    public void RemovePermission(Permission permission)
+    {
+        HashSet<Permission> newPermissions = new(this.Permissions);
+        newPermissions.Remove(permission);
         this.Permissions = newPermissions;
     }
 

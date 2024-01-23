@@ -21,12 +21,12 @@ namespace RightVisionBot.Back
                 return phrases[phraseName];
             else
             {
-                string _langFilePath = Path.Combine("lang", "ru.json");
-                string _json = File.ReadAllText(_langFilePath);
-                var _phrases = JsonConvert.DeserializeObject<Dictionary<string, string>>(_json);
+                langFilePath = Path.Combine("lang", "ru.json");
+                json = File.ReadAllText(langFilePath);
+                phrases = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
 
-                if (_phrases.ContainsKey(phraseName))
-                    return _phrases[phraseName];
+                if (phrases.ContainsKey(phraseName))
+                    return phrases[phraseName];
                 else
                     return "❌Phrase not found";
             }

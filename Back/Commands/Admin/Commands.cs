@@ -43,10 +43,16 @@ namespace RightVisionBot.Back.Commands.Admin
                 await News.Common(botClient, message, rvUser);
 
             else if (message.Text.ToLower().StartsWith("назначить "))
-                await Grant.Execute(botClient, message, rvUser);
+                await Grant.Role(botClient, message, rvUser);
 
             else if (message.Text.StartsWith("+reward "))
                 await Reward.Give(botClient, message);
+
+            else if (message.Text.StartsWith("+permission "))
+                await Grant.Perm(botClient, message, rvUser);
+
+            else if (message.Text.StartsWith("-permission "))
+                await Degrade.Perm(botClient, message, rvUser);
 
             else if (message.Text.StartsWith("/tech "))
                 await News.Tech(botClient, message, rvUser);
