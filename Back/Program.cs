@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RightVisionBot.Back.Commands;
 using RightVisionBot.Back.Commands.Admin;
@@ -22,11 +22,8 @@ namespace RightVisionBot.Back
         public static readonly ITelegramBotClient botClient = new TelegramBotClient("Токен");
         public static readonly sql database = new("Адрес MySQL");
 
-        static async Task Main(string[] args)
+        private Program()
         {
-            if (args is null)
-                throw new ArgumentNullException(nameof(args));
-
             Console.WriteLine("Начался процесс запуска бота");
             Console.WriteLine("Восстановление данных пользователей...");
             DataRestorer.RestoreUsers();
@@ -44,7 +41,7 @@ namespace RightVisionBot.Back
                 {
                     string[] commandWithArgs = command.Split(" ");
                     string msg = string.Join(" ", commandWithArgs.Skip(2));
-                    await botClient.SendTextMessageAsync(long.Parse(commandWithArgs[1]), msg);
+                    botClient.SendTextMessageAsync(long.Parse(commandWithArgs[1]), msg);
                 }
                 else if (command == "stop")
                 {
@@ -55,13 +52,14 @@ namespace RightVisionBot.Back
                 {
                     Console.WriteLine("Начался процесс перезапуска...\n");
                     cts.Cancel();
-                    await Main(args);
                     break;
                 }
             }
         }
 
-        public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        public static async Task Main(string[] args) => new Program();
+
+        public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
@@ -115,7 +113,7 @@ namespace RightVisionBot.Back
                         {
                             string lowercaseText = message.Text.ToLower();
                             await Document.Handling(botClient, message, rvUser);
-                            await General.Commands(botClient, rvUser, update);
+                            new General(Program.botClient).OnMessageReceived(rvUser, update, cancellationToken);
                             switch (rvUser.Status)
                             {
                                 case Status.Critic:
