@@ -24,6 +24,9 @@ namespace RightVisionBot.Back
 
         private Program()
         {
+            if (args is null)
+                throw new ArgumentNullException(nameof(args));
+
             Console.WriteLine("Начался процесс запуска бота");
             Console.WriteLine("Восстановление данных пользователей...");
             DataRestorer.RestoreUsers();
