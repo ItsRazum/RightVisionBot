@@ -11,21 +11,21 @@ namespace RightVisionBot.Back
 {
     internal class Keyboard
     {
-        public static ReplyKeyboardMarkup ForMember(long userId) => new(new[] 
+        public static ReplyKeyboardMarkup ForMember(string lang) => new(new[] 
         {
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) },
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_EditTrack", RvUser.Get(userId).Lang)) },
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", lang)) },
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_EditTrack", lang)) },
             new[] { new KeyboardButton("Получить визуал ремикса") }
         })
         { ResizeKeyboard = true };
 
-        public static ReplyKeyboardMarkup MainMenu(long userId) => new(new[] 
-            { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) } })
+        public static ReplyKeyboardMarkup MainMenu(string lang) => new(new[] 
+            { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", lang)) } })
         { ResizeKeyboard = true };
 
-        public static ReplyKeyboardMarkup backButton(long userId) => new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang)) }) { ResizeKeyboard = true };
+        public static ReplyKeyboardMarkup backButton(string lang) => new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", lang)) }) { ResizeKeyboard = true };
 
-        public static ReplyKeyboardMarkup chooseRate(long userId) => new(new[]
+        public static ReplyKeyboardMarkup chooseRate(string lang) => new(new[]
             {
                 new[]
                 {
@@ -36,30 +36,30 @@ namespace RightVisionBot.Back
                 },
                 new[]
                 {
-                    new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang))
+                    new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", lang))
                 }
             })
             { ResizeKeyboard = true };
 
-        public static ReplyKeyboardMarkup ForCritic(long userId) => new(new[] 
+        public static ReplyKeyboardMarkup ForCritic(string lang) => new(new[] 
         {
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) },
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Critic_Menu_Open", RvUser.Get(userId).Lang)) }
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", lang)) },
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Critic_Menu_Open", lang)) }
         })
         { ResizeKeyboard = true };
 
-        public static ReplyKeyboardMarkup ForOther(long userId) => new(new[]
+        public static ReplyKeyboardMarkup ForOther(string lang) => new(new[]
         {
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) }
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", lang)) }
         })
         { ResizeKeyboard = true };
 
-        public static ReplyKeyboardMarkup ForCriticAndMember(long userId) => new(new[] 
+        public static ReplyKeyboardMarkup ForCriticAndMember(string lang) => new(new[] 
         {
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) },
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Critic_Menu_Open", RvUser.Get(userId).Lang)) },
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", lang)) },
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Critic_Menu_Open", lang)) },
             new[] { new KeyboardButton("Получить визуал ремикса") },
-            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_SendTrack", RvUser.Get(userId).Lang)) }
+            new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_SendTrack", lang)) }
         })
         { ResizeKeyboard = true };
 
@@ -164,6 +164,17 @@ namespace RightVisionBot.Back
             {
                 new[] { InlineKeyboardButton.WithCallbackData("Взять кураторство над судьёй", "c_accept") },
                 new[] { InlineKeyboardButton.WithCallbackData("Отклонить кандидатуру", "c_deny") }
+            }
+        );
+
+        public static InlineKeyboardMarkup KickHares = new InlineKeyboardMarkup(
+            new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Да", "h_kick"),
+                    InlineKeyboardButton.WithCallbackData("Нет", "h_notkick"), 
+                },
             }
         );
 

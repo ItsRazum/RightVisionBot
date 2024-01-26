@@ -19,9 +19,9 @@ namespace RightVisionBot.Back.Forms
         {
             sql database = Program.database;
             long userId = message.From.Id;
-            var chooseRate = Keyboard.chooseRate(userId);
-            var backButton = Keyboard.backButton(userId);
-            var MainMenu =   Keyboard.MainMenu(userId);
+            var chooseRate = Keyboard.chooseRate(RvUser.Get(userId).Lang);
+            var backButton = Keyboard.backButton(RvUser.Get(userId).Lang);
+            var MainMenu =   Keyboard.MainMenu(RvUser.Get(userId).Lang);
             var member = RvMember.Get(userId);
             string back = Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang);
 

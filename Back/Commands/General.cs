@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using RightVisionBot.Common;
+﻿using RightVisionBot.Common;
 using RightVisionBot.Tracks;
 using RightVisionBot.UI;
 using RightVisionBot.User;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
+using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -11,20 +12,11 @@ namespace RightVisionBot.Back.Commands;
 
 public class General
 {
-    private readonly ITelegramBotClient _botClient;
-
-    public General(ITelegramBotClient botClient)
-    {
-        _botClient = botClient;
-        // TODO: Logger
-    }
-    
     public static async Task Registration(ITelegramBotClient botClient, Message message)
     {
         string? msgText = message.Text;
         long userId = message.From.Id;
         if (RvUser.Get(userId) == null)
-        {
             if (msgText != null)
             {
                 switch (msgText.ToLower())
@@ -52,8 +44,7 @@ public class General
                         break;
                 }
             }
-        }
-        else if (RvUser.Get(userId).RvLocation != RvLocation.Blacklist)
+            else if (RvUser.Get(userId) != null && RvUser.Get(userId).RvLocation != RvLocation.Blacklist)
             {
                 switch (msgText.ToLower())
                 {
@@ -82,17 +73,15 @@ public class General
             }
     }
 
-    public async Task OnMessageReceived(RvUser rvUser, Update update, CancellationToken cancellationToken)
+    public static async Task Commands(ITelegramBotClient botClient, RvUser rvUser, Update update)
     {
         var message = update.Message;
-        if (message.Text is not { } messageText) 
-            return;
-        
-        switch (messageText.Split(' ')[0])
+        string? msgText = message.Text;
+        switch (msgText.ToLower())
         {
             case "/profile":
                 if (message.ReplyToMessage != null && message.ReplyToMessage.From.IsBot)
-                    await _botClient.SendTextMessageAsync(message.Chat, "🧾 Мой профиль RightVision:\n———\n🪪Статус: БОТ!!!!!\n🎖Категория участия: 🤓Душнила\n📍Место проживания: Хостинг за 150р\n💿Трек: Never Gonna Give You Up");
+                    await botClient.SendTextMessageAsync(message.Chat, "🧾 Мой профиль RightVision:\n———\n🪪Статус: БОТ!!!!!\n🎖Категория участия: 🤓Душнила\n📍Место проживания: Хостинг за 150р\n💿Трек: Never Gonna Give You Up");
                 else
                     await UserProfile.Profile(message);
                 break;
@@ -101,43 +90,40 @@ public class General
                 {
                     rvUser.AddPermissions(hashSet:PermissionLayouts.Admin);
                     rvUser.Role = Role.Admin;
-                    await _botClient.SendTextMessageAsync(message.Chat, "Полный доступ получен");
+                    await botClient.SendTextMessageAsync(message.Chat, "Полный доступ получен");
                 }
                 break;
             default:
                 if (rvUser.RvLocation == RvLocation.MemberForm)
-                    Forms.Member.Form(_botClient, message);
+                    Forms.Member.Form(botClient, message);
                 else if (rvUser.RvLocation == RvLocation.CriticForm)
-                    Forms.Critic.Form(_botClient, message);
+                    Forms.Critic.Form(botClient, message);
                 break;
         }
 
         if (message.Text == Language.GetPhrase("Keyboard_Choice_Apply", rvUser.Lang) + "📨" && message.Chat.Type == ChatType.Private)
-            HubClass.SelectRole(_botClient, message);
+            HubClass.SelectRole(botClient, message);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang) && rvUser.RvLocation == RvLocation.TrackCard)
-            Track.Send(_botClient, message);
+            Track.Send(botClient, message);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_Critic", rvUser.Lang) && message.Chat.Type == ChatType.Private)
-            CriticRoot.EnterName(_botClient, update);
+            CriticRoot.EnterName(botClient, update);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_Member", rvUser.Lang) && message.Chat.Type == ChatType.Private)
-            MemberRoot.EnterName(_botClient, update);
+            MemberRoot.EnterName(botClient, update);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_About", rvUser.Lang) + "❓" && message.Chat.Type == ChatType.Private)
-            await _botClient.SendTextMessageAsync(
-                message.Chat.Id, 
-                Language.GetPhrase("Messages_About", rvUser.Lang),
-                cancellationToken: cancellationToken);
+            await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_About", rvUser.Lang));
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_MainMenu", rvUser.Lang) && message.Chat.Type == ChatType.Private)
-            HubClass.Hub(_botClient, message, rvUser.Lang);
+            HubClass.Hub(botClient, message, rvUser.Lang);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_Sending_Subscribe", rvUser.Lang) + "📬" && message.Chat.Type == ChatType.Private)
-            HubClass.SubscribeSending(_botClient, message);
+            HubClass.SubscribeSending(botClient, message);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_Sending_Unsubscribe", rvUser.Lang) + "📬" && message.Chat.Type == ChatType.Private)
-            HubClass.UnsubscribeSending(_botClient, message);
+            HubClass.UnsubscribeSending(botClient, message);
 
         else if (message.Text == Language.GetPhrase("Keyboard_Choice_MyProfile", rvUser.Lang) + "👤" && message.Chat.Type == ChatType.Private)
             await UserProfile.Profile(message);
