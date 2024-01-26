@@ -74,31 +74,5 @@ namespace RightVisionBot.Back
                 throw ex;
             }
         }
-
-        public bool TableExists(string tableName)
-        {
-            try
-            {
-                db.Open();
-                using (var cmd = db.CreateCommand())
-                {
-                    cmd.Connection = db;
-                    cmd.CommandText = $"SHOW TABLES LIKE '{tableName}'";
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        bool tableExists = reader.HasRows;
-                        reader.Close();
-                        db.Close();
-                        return tableExists;
-                    }
-                }
-            }
-            catch (MySqlException ex)
-            {
-                Console.WriteLine("Произошла ошибка при подключении к базе данных! (TableExists)");
-                db.Close();
-                throw ex;
-            }
-        }
     }
 }

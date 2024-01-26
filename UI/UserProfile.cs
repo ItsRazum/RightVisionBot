@@ -87,7 +87,7 @@ namespace RightVisionBot.UI
                 long userId = message.From.Id;
                 return string.Format(Language.GetPhrase("Profile_Forms", RvUser.Get(userId).Lang),
                     GetCandidateStatus(userId, "Member"),
-                    GetCandidateStatus(userId, "Critic")) + "\n";
+                    GetCandidateStatus(userId, "Critic"));
             }
             else
                 return string.Empty;
@@ -95,7 +95,7 @@ namespace RightVisionBot.UI
 
         private static string RoleFormat(RvUser rvUser) =>
             rvUser.Role == Role.None 
-                ? GetUserStatus(rvUser) 
+                ? GetUserStatus(rvUser)
                 : GetUserStatus(rvUser) + "\n" + string.Format(Language.GetPhrase("Profile_Role", rvUser.Lang), RoleAsString(rvUser));
 
         private static string GetUserStatus(RvUser rvUser)
@@ -111,25 +111,21 @@ namespace RightVisionBot.UI
         }
 
         private static string RoleAsString(RvUser rvUser)
-        {
-            switch (rvUser.Role)
+            => rvUser.Role switch
             {
-                case Role.Admin:      return "Главный организатор\n";
-                case Role.Moderator:  return "Модератор\n";
-                case Role.TechAdmin:  return "Техадмин\n";
-                case Role.Developer:  return "Разработчик\n";
-                case Role.Curator:    return "Куратор\n";
-                case Role.Designer:   return "Дизайнер\n";
-                case Role.Translator: return "Переводчик\n";
-                default:
-                    return string.Empty;
-            }
-        }
+                Role.Admin => "Главный организатор",
+                Role.Moderator => "Модератор",
+                Role.TechAdmin => "Техадмин",
+                Role.Developer => "Разработчик",
+                Role.Curator => "Куратор",
+                Role.Designer => "Дизайнер",
+                Role.Translator => "Переводчик",
+                _ =>
+                    string.Empty
+            };
 
         private static string CategoryFormat(long userId)
-        {
-
-            return RvUser.Get(userId).Category switch
+            => RvUser.Get(userId).Category switch
             {
                 "bronze" =>    "🥉Bronze",
                 "steel" =>     "🥈Steel",
@@ -137,32 +133,29 @@ namespace RightVisionBot.UI
                 "brilliant" => "💎Brilliant",
                 _ => string.Empty
             };
-        }
 
-        private static ReplyKeyboardMarkup KeyboardFormat(long userId, Status status)
-        {
-            return status switch
+        private static ReplyKeyboardMarkup KeyboardFormat(string lang, Status status) 
+            => status switch
             {
-                Status.Member => Keyboard.ForMember(userId),
-                Status.Critic => Keyboard.ForCritic(userId),
-                Status.CriticAndMember => Keyboard.ForCriticAndMember(userId),
-                _ => Keyboard.ForOther(userId)
+                Status.Member => Keyboard.ForMember(lang),
+                Status.Critic => Keyboard.ForCritic(lang),
+                Status.CriticAndMember => Keyboard.ForCriticAndMember(lang),
+                _ => Keyboard.ForOther(lang)
             };
-        }
 
         private static string RewardsFormat(RvUser rvUser)
         {
             string header = Language.GetPhrase("Profile_Form_Rewards", rvUser.Lang);
             StringBuilder sb = new StringBuilder();
             if (rvUser.Rewards.FirstOrDefault() == null)
-                return header + "Кажется, здесь ничего нет!";
+                return "\n" + header + "Кажется, здесь ничего нет!";
             else
             {
                 foreach (var dictionary in rvUser.Rewards)
                     foreach (var reward in dictionary)
                         sb.Append("|" + reward.Value + "\n");
 
-                return header + sb;
+                return "\n" + header + sb;
             }
         }
 
@@ -178,7 +171,7 @@ namespace RightVisionBot.UI
                 string.Format(Language.GetPhrase("Profile_Global_Header", lang), message.ReplyToMessage.From.FirstName);
 
             if (message.Chat.Type == ChatType.Private)
-                botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Messages_Loading", lang), replyMarkup: KeyboardFormat(userId, rvUser.Status));
+                botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Messages_Loading", lang), replyMarkup: KeyboardFormat(lang, rvUser.Status));
 
 
 
@@ -188,7 +181,7 @@ namespace RightVisionBot.UI
                     return header + RoleFormat(rvUser) + optional;
 
                 case Status.Member:
-                    string memberLayout = string.Format(Language.GetPhrase("Profile_Member_Layout", lang),
+                    string memberLayout = string.Format("\n" + Language.GetPhrase("Profile_Member_Layout", lang),
                         /*0*/CategoryFormat(getId),
                         /*1*/RvMember.Get(getId).Country,
                         /*2*/RvMember.Get(getId).City,
@@ -196,12 +189,12 @@ namespace RightVisionBot.UI
                     return header + RoleFormat(rvUser) + memberLayout;
 
                 case Status.Critic:
-                    string criticLayout = string.Format(Language.GetPhrase("Profile_Critic_Layout", lang),
+                    string criticLayout = string.Format("\n" + Language.GetPhrase("Profile_Critic_Layout", lang),
                         /*0*/CategoryFormat(getId)) + optional;
                     return header + RoleFormat(rvUser) + criticLayout;
 
                 case Status.CriticAndMember:
-                    string criticAndMemberLayout = string.Format(Language.GetPhrase("Profile_CriticAndMember_Layout", lang),
+                    string criticAndMemberLayout = string.Format("\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", lang),
                         /*0*/CategoryFormat(getId),
                         /*1*/RvMember.Get(getId).Country,
                         /*2*/RvMember.Get(getId).City,

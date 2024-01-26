@@ -19,7 +19,7 @@ namespace RightVisionBot.Back
             {
                 string[] columns = new[] { "userId", "lang", "status", "rvLocation", "role", "category" };
                 var usersQuery = "SELECT * FROM `RV_Users`";
-                var uRead = database.ExtRead(usersQuery, columns);
+                List<Dictionary<string, object>> uRead = database.ExtRead(usersQuery, columns);
                 int i = 0;
                 foreach (var userDb in uRead)
                 {

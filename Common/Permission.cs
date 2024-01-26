@@ -1,4 +1,5 @@
 ﻿using RightVisionBot.Back;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -34,11 +35,18 @@ namespace RightVisionBot.Common;
 
         public static HashSet<Permission> Moderator = new()
         {
-            Permission.Ban,                  Permission.Mute,
-            Permission.Blacklist,            Permission.Block
+            Permission.Mute,                 Permission.Unmute,
+            Permission.Cancel
         };
 
-        public static HashSet<Permission> Curator = new()
+        public static HashSet<Permission> SeniorModerator = new(Moderator)
+        {
+            Permission.Ban,                  Permission.Unban,
+            Permission.BlacklistOn,          Permission.BlacklistOff,
+            Permission.EditPermissions,      Permission.Block
+        };
+
+    public static HashSet<Permission> Curator = new()
         {
             Permission.PreListening,         Permission.Curate,
             Permission.Rewarding             
@@ -51,13 +59,17 @@ namespace RightVisionBot.Common;
 
     public static HashSet<Permission> Admin = new(CriticAndMember)
         {
-            Permission.Messaging,            Permission.Ban, 
-            Permission.Mute,                 Permission.Blacklist,
-            Permission.PreListening,         Permission.EditPermissions,
-            Permission.Cancel,               Permission.Block,
-            Permission.Rewarding,            Permission.Grant,
-            Permission.Degrade,              Permission.GivePermission,
-            Permission.DegradePermission
+            Permission.Sending,              Permission.News,
+            Permission.MemberNews,           Permission.TechNews,
+            Permission.PreListening,         Permission.Curate,
+            Permission.Ban,                  Permission.Mute,
+            Permission.EditPermissions,      Permission.BlacklistOn,
+            Permission.Block,                Permission.Cancel,
+            Permission.Audit,                Permission.Rewarding,
+            Permission.Grant,                Permission.GivePermission,
+            Permission.Degrade,              Permission.DegradePermission,
+            Permission.Unban,                Permission.Unmute,
+            Permission.BlacklistOff,
         };
     }
 
@@ -66,6 +78,59 @@ class Permissions
     private static ITelegramBotClient botClient = Program.botClient;
 
     public static void NoPermission(Message message) => botClient.SendTextMessageAsync(message.Chat, "Извини, но у тебя нет права совершать это действие!");
+
+    public static async Task Reset(ITelegramBotClient botClient, Message message, RvUser rvUser)
+    {
+        if (message.ReplyToMessage != null && rvUser.Has(Permission.DegradePermission) && rvUser.Has(Permission.GivePermission))
+        {
+            RvUser repliedRvUser = RvUser.Get(message.ReplyToMessage.From.Id);
+            string statusLayout = string.Empty;
+            string roleLayout = string.Empty;
+            switch (repliedRvUser.Status)
+            {
+                case Status.User:
+                    repliedRvUser.Permissions = PermissionLayouts.User;
+                    statusLayout = "User";
+                    break;
+                case Status.Critic:
+                    repliedRvUser.Permissions = PermissionLayouts.Critic;
+                    statusLayout = "Critic";
+                    break;
+                case Status.Member:
+                    repliedRvUser.Permissions = PermissionLayouts.Member;
+                    statusLayout = "Member";
+                    break;
+                case Status.CriticAndMember:
+                    repliedRvUser.Permissions = PermissionLayouts.CriticAndMember;
+                    statusLayout = "CriticAndMember";
+                    break;
+            }
+
+            switch (repliedRvUser.Role)
+            {
+                case Role.Admin:
+                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Admin);
+                    roleLayout = "Admin";
+                    break;
+                case Role.Curator:
+                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Curator);
+                    roleLayout = "Curator";
+                    break;
+                case Role.Moderator:
+                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Moderator);
+                    roleLayout = "Moderator";
+                    break;
+                case Role.Developer:
+                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Developer);
+                    roleLayout = "Developer";
+                    break;
+            }
+
+            await botClient.SendTextMessageAsync(message.Chat, $"Выполнен сброс прав до стандартных для пользователя.\n\nИспользованные шаблоны:\n{statusLayout}\n{roleLayout}");
+        }
+        else
+            Permissions.NoPermission(message);
+    }
 }
 
 public enum Permission
@@ -111,7 +176,7 @@ public enum Permission
     /// <summary>Право изменять права других пользователей</summary>
     EditPermissions,
     /// <summary>Право на отправку пользователя в чёрный список</summary>
-    Blacklist,
+    BlacklistOn,
     /// <summary>Право на блокировку любой из кандидатур пользователя</summary>
     Block,
     /// <summary>Право на аннулирование любой из кандидатур пользователя</summary>
@@ -128,4 +193,10 @@ public enum Permission
     Degrade,
     /// <summary>Право на снятие с пользователя права</summary>
     DegradePermission,
+    /// <summary>Право на разбан пользователя</summary>
+    Unban,
+    /// <summary>Право на размут пользователя</summary>
+    Unmute,
+    /// <summary>Право на удаление пользователя из чёрного списка</summary>
+    BlacklistOff,
 }

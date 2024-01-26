@@ -44,7 +44,7 @@ public class General
                         break;
                 }
             }
-            else if (RvUser.Get(userId).RvLocation != RvLocation.Blacklist)
+            else if (RvUser.Get(userId) != null && RvUser.Get(userId).RvLocation != RvLocation.Blacklist)
             {
                 switch (msgText.ToLower())
                 {

@@ -56,10 +56,10 @@ public class RvUser
     {
         switch (Role)
         {
-            case Role.Admin:     Permissions = PermissionLayouts.Admin;     break;
-            case Role.Moderator: Permissions = PermissionLayouts.Moderator; break;
-            case Role.Curator:   Permissions = PermissionLayouts.Curator;   break;
-            case Role.Developer: Permissions = PermissionLayouts.Developer; break;
+            case Role.Admin:     this.AddPermissions(hashSet:PermissionLayouts.Admin);      break;
+            case Role.Moderator: this.AddPermissions(hashSet:PermissionLayouts.Moderator);  break;
+            case Role.Curator:   this.AddPermissions(hashSet:PermissionLayouts.Curator);    break;
+            case Role.Developer: this.AddPermissions(hashSet:PermissionLayouts.Developer);  break;
         }
 
         newString(value, property);

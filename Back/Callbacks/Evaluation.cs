@@ -14,8 +14,6 @@ namespace RightVisionBot.Back.Callbacks
     {
         private static sql database = Program.database;
 
-
-
         public static async Task Callbacks(ITelegramBotClient botClient, Update update)
         {
             var callback = update.CallbackQuery;

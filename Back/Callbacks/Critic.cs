@@ -60,18 +60,11 @@ namespace RightVisionBot.Back.Callbacks
                             long criticId = long.Parse(match.Groups[1].Value);
 
                             RvCritic.Get(criticId).Curator = callback.From.Id;
-                            var query =
-                                $"UPDATE `RV_Critics` SET `curator` = '{callback.From.Id}' WHERE `userId` =  {criticId};";
-                            database.Read(query, "");
-                            await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
-                                $"{callback.Message.Text}\n\nОтветственный за судью: {update.CallbackQuery.From.FirstName}\n❌Заявка отклонена!");
-                            await botClient.SendTextMessageAsync(criticId,
-                                string.Format(
-                                    Language.GetPhrase("Critic_Messages_FormDenied", RvUser.Get(criticId).Lang),
-                                    fullname));
-                            var updateCriticStatus =
-                                $"UPDATE `RV_Critics` SET `status` = 'denied' WHERE `userId` = {criticId};";
-                            database.Read(updateCriticStatus, "");
+                            database.Read($"UPDATE `RV_Critics` SET `curator` = '{callback.From.Id}' WHERE `userId` =  {criticId};", "");
+                            await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"{callback.Message.Text}\n\nОтветственный за судью: {update.CallbackQuery.From.FirstName}\n❌Заявка отклонена!");
+                            await botClient.SendTextMessageAsync(criticId, string.Format(Language.GetPhrase("Critic_Messages_FormDenied", RvUser.Get(criticId).Lang), fullname));
+                            
+                            database.Read($"UPDATE `RV_Critics` SET `status` = 'denied' WHERE `userId` = {criticId};", "");
                             await botClient.SendTextMessageAsync(-4074101060,
                                 $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру судьи Id:{criticId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}",
                                 disableNotification: true);
@@ -85,16 +78,11 @@ namespace RightVisionBot.Back.Callbacks
                         long criticId = long.Parse(match.Groups[1].Value);
                         if (callback.From.Id == RvCritic.Get(criticId).Curator)
                         {
-                            botClient.EditMessageTextAsync(callback.Message.Chat,
+                            await botClient.EditMessageTextAsync(callback.Message.Chat,
                                 update.CallbackQuery.Message.MessageId,
                                 $"{callback.Message.Text}\n❌Заявка отклонена!");
-                            botClient.SendTextMessageAsync(criticId,
-                                string.Format(
-                                    Language.GetPhrase("Critic_Messages_FormDenied", RvUser.Get(criticId).Lang),
-                                    fullname));
-                            var updateCriticStatus =
-                                $"UPDATE `RV_Critics` SET `status` = 'denied' WHERE `userId` = {criticId};";
-                            database.Read(updateCriticStatus, "");
+                            await botClient.SendTextMessageAsync(criticId, string.Format(Language.GetPhrase("Critic_Messages_FormDenied", RvUser.Get(criticId).Lang), fullname));
+                            database.Read($"UPDATE `RV_Critics` SET `status` = 'denied' WHERE `userId` = {criticId};", "");
                             await botClient.SendTextMessageAsync(-4074101060,
                                 $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру критика Id:{criticId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}",
                                 disableNotification: true);

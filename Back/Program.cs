@@ -19,8 +19,8 @@ namespace RightVisionBot.Back
     class Program
     {
         public static volatile List<RvUser> users = new();
-        public static readonly ITelegramBotClient botClient = new TelegramBotClient("Токен");
-        public static readonly sql database = new("Адрес MySQL");
+        public static readonly ITelegramBotClient botClient = new TelegramBotClient("6504108595:AAH7E0rdvgQK6m8NZ8XpcsGDzC-9JNbfctU");
+        public static readonly sql database = new("server=127.0.0.1;uid=demid;pwd=Z2r757vnGK9J;database=phpmyadmin");
 
         static async Task Main(string[] args)
         {
@@ -77,27 +77,30 @@ namespace RightVisionBot.Back
                         await Callbacks.TrackCard.Callbacks(botClient, update);
                     else if (callback.Data.StartsWith("r_") || callback.Data.StartsWith("change"))
                         await Callbacks.Evaluation.Callbacks(botClient, update);
+                    else if (callback.Data.StartsWith("h_"))
+                        await Callbacks.Admin.Callbacks(botClient, update, RvUser.Get(update.CallbackQuery.From.Id));
                 }
                 Message message = update.Message;
                 if (message != null)
                 {
                     if (message.NewChatMembers != null)
                     {
+                        string kickMessage = "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...";
                         var newUserId = message.NewChatMembers[0].Id;
                         var chatId = message.Chat.Id;
                         switch (chatId)
                         {
                             case -1002074764678:
-                                if (RvMember.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.MemberChat)) 
+                                if ((RvMember.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.MemberChat)) && RvUser.Get(message.From.Id).Role != Role.Admin)
                                 {
-                                    await botClient.SendTextMessageAsync(message.Chat, "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...");
+                                    await botClient.SendTextMessageAsync(message.Chat, kickMessage);
                                     await botClient.BanChatMemberAsync(message.Chat, newUserId);
                                 }
                                 break;
                             case -1001968408177:
-                                if (RvCritic.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.CriticChat))
+                                if ((RvCritic.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.CriticChat)) && RvUser.Get(message.From.Id).Role != Role.Admin)
                                 {
-                                    await botClient.SendTextMessageAsync(message.Chat, "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...");
+                                    await botClient.SendTextMessageAsync(message.Chat, kickMessage);
                                     await botClient.BanChatMemberAsync(message.Chat, newUserId);
                                 }
                                 break;
