@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -38,13 +39,15 @@ namespace RightVisionBot.User
         public string Rate { get => _rate; set { _rate = value; newString(value, nameof(Rate)); } }
 
         private string _track = "0";
-        public string Track { get => _track; set { _track = value; newString(value, nameof(Track)); } }
+        public string TrackStr { get => _track; set { _track = value; newString(value, nameof(Track)); } }
 
         private long _curator = 0;
         public long Curator { get => _curator; set { _curator = value; newLong(value, nameof(Curator)); } }
 
         private string _status = "0";
         public string Status { get => _status; set { _status = value; newString(value, nameof(Status)); } }
+
+        public TrackInfo? Track { get; set; }
 
         private string newString(string value, string property)
         {

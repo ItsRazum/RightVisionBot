@@ -44,6 +44,8 @@ namespace RightVisionBot.User
         private string _status = "0";
         public string Status { get => _status; set { _status = value; newString(value, nameof(Status)); } }
 
+        public PreListener PreListening;
+
         private string newString(string value, string property)
         { _OnPropertyChanged(property, value); return value; }
 
@@ -77,21 +79,18 @@ namespace RightVisionBot.User
         public long ArtistId { get; set; }
 
 
-        private string newString(string value, string property)
+        private string NewString(string value, string property)
         { _OnPropertyChanged(property, value); return value; }
 
-        private long newLong(long value, string property)
-        { newString(value.ToString(), property); return value; }
+        private long NewLong(long value, string property)
+        { NewString(value.ToString(), property); return value; }
 
         public event Action<string> OnPropertyChanged = delegate { };
         private void _OnPropertyChanged(string property, string value)
         { OnPropertyChanged(property); UpdateDatabase(property, value); }
 
-        private void UpdateDatabase(string property, string value)
-        {
-            sql database = Program.database;
-            database.Read($"UPDATE `RV_PreListening` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {ListenerId}", "");
-        }
+        private void UpdateDatabase(string property, string value) => 
+            Program.database.Read($"UPDATE `RV_PreListening` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {ListenerId}", "");
     }
 
     class CriticRoot
@@ -104,10 +103,11 @@ namespace RightVisionBot.User
             var message = update.Message ?? update.CallbackQuery?.Message;
             long userId = RvUser.Get(message.From.Id) == null ? update.CallbackQuery.From.Id : update.Message.From.Id;
             string telegram = RvUser.Get(message.From.Id) == null ? update.CallbackQuery?.From.Username : update.Message?.From.Username;
+            RvUser rvUser = RvUser.Get(userId);
             //botClient.SendTextMessageAsync(update.Message.Chat, Language.GetPhrase("Critic_Messages_EnrollmentClosed", RvUser.Get(update.Message.From.Id).Lang));
             if (RvCritic.Get(userId) == null)
             {
-
+                Program.updateRvLocation(userId, RvLocation.CriticForm);
                 RvCritic critic = new();
                 critic.UserId = userId;
                 critic.Telegram = "@" + telegram;
@@ -116,10 +116,9 @@ namespace RightVisionBot.User
                 database.Read(query, "");
                 newCritics.Add(critic);
                 var removeKeyboard = new ReplyKeyboardRemove();
-                ReplyKeyboardMarkup backButton = new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang)) }) { ResizeKeyboard = true };
-                botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterName", RvUser.Get(userId).Lang), replyMarkup: backButton);
-                Program.updateRvLocation(userId, RvLocation.CriticForm);
-                botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} начал заполнение заявки на судейство", disableNotification: true);
+                ReplyKeyboardMarkup backButton = new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang)) }) { ResizeKeyboard = true };
+                botClient.EditMessageTextAsync(message.Chat, update.CallbackQuery.Message.MessageId, Language.GetPhrase("Critic_Messages_EnterName", rvUser.Lang), replyMarkup: Keyboard.CancelForm(rvUser, Status.Critic));
+                botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} начал заполнение заявки на судейство", disableNotification: true);
             }
         }
 
@@ -128,36 +127,35 @@ namespace RightVisionBot.User
             var callback = update.CallbackQuery;
             var callbackQuery = update.CallbackQuery.Data;
             string fullname = callback.From.FirstName + callback.From.LastName;
+            long criticId = 0;
 
             string category2 = "0";
             switch (category)
             {
                 case "🥉Bronze":
                     category2 = "bronze";
+                    criticId = long.Parse(callbackQuery.Replace("c_bronze-", ""));
                     break;
                 case "🥈Steel":
                     category2 = "steel";
+                    criticId = long.Parse(callbackQuery.Replace("c_steel-", ""));
                     break;
                 case "🥇Gold":
                     category2 = "gold";
+                    criticId = long.Parse(callbackQuery.Replace("c_gold-", ""));
                     break;
                 case "💎Brilliant":
                     category2 = "brilliant";
+                    criticId = long.Parse(callbackQuery.Replace("c_brilliant-", ""));
                     break;
-
             }
 
-            Match match = Regex.Match(callback.Message.Text, @"Id:\s*(\d+)");
-            long criticId = long.Parse(match.Groups[1].Value);
             if (callback.From.Id == RvCritic.Get(criticId).Curator)
             {
-                botClient.EditMessageTextAsync(callback.Message.Chat,
-                    update.CallbackQuery.Message.MessageId,
-                    $"{callback.Message.Text}\nКатегория: {category}\n\nКандидат был приглашён в эту беседу!");
+                botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"{callback.Message.Text}\nКатегория: {category}\n\nКандидат был приглашён в эту беседу!");
                 botClient.SendTextMessageAsync(criticId, string.Format(Language.GetPhrase("Critic_Messages_FormAccepted", RvUser.Get(criticId).Lang), category, fullname));
                 botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} выдал категорию {category2} судье Id:{criticId}", disableNotification: true);
-                var updateCriticStatus = $"UPDATE `RV_Critics` SET `status` = '{category2}' WHERE `userId` = {criticId};";
-                database.Read(updateCriticStatus, "");
+                RvCritic.Get(criticId).Status = category2;
                 Program.UpdateStatus(criticId);
             }
         }
@@ -165,89 +163,88 @@ namespace RightVisionBot.User
 
     class PreListening
     {
-        public static volatile List<PreListener> preListeners = new();
         static sql database = Program.database;
-        public static void Start(ITelegramBotClient botClient, Message message)
+        public static async Task Start(ITelegramBotClient botClient, CallbackQuery callback)
         {
-            long userId = message.From.Id;
-            List<string> CuratorId = database.Read($"SELECT * FROM `RV_Curators` WHERE `id` = '{userId}';", "id");
-            string curatorId = CuratorId.FirstOrDefault();
-            if (curatorId != null)
+            long userId = callback.From.Id;
+            if (RvUser.Get(userId).Has(Permission.Curate))
             {
                 Program.updateRvLocation(userId, RvLocation.PreListening);
-                ReplyKeyboardMarkup actions = new(new[]
+                InlineKeyboardMarkup actions = new(new[]
                     {
-                        new[] { new KeyboardButton("Начать предварительное прослушивание") },
-                        new[] { new KeyboardButton("Назад") }
-                    })
-                { ResizeKeyboard = true };
-                botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Keyboard_Choice_Critic_Menu_PreListening_Instruction", RvUser.Get(userId).Lang), replyMarkup: actions);
-                botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} открыл меню предварительного прослушивания\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                        new[] { InlineKeyboardButton.WithCallbackData("Начать предварительное прослушивание", "c_startprelistening") },
+                        new[] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang), "c_openmenu") }
+                    });
+                await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, Language.GetPhrase("Keyboard_Choice_Critic_Menu_PreListening_Instruction", RvUser.Get(userId).Lang), replyMarkup: actions);
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} открыл меню предварительного прослушивания\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
             }
+            else await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но тебе нельзя проводить предварительное прослушивание!", showAlert: true);
         }
 
-        public static void PreListenTrack(ITelegramBotClient botClient, Message message)
+        public static async Task PreListenTrack(ITelegramBotClient botClient, CallbackQuery callback)
         {
             ReplyKeyboardMarkup back = new(new[]
             { new[] { new KeyboardButton("Назад") } })
             { ResizeKeyboard = true };
-            long userId = message.From.Id;
-            ReplyKeyboardMarkup actions = Keyboard.actions;
-            var artistId = database.Read($"SELECT `userId` FROM `RV_Tracks` WHERE `status` = 'waiting' AND `userId` != '{userId}' AND `track` IS NOT NULL AND `image` IS NOT NULL LIMIT 1", "userId");
-            var trackName = database.Read($"SELECT `track` FROM `RV_Members` WHERE `userId` = '{artistId.FirstOrDefault()}' LIMIT 1", "track");
-            var trackCard = database.ExtRead($"SELECT `track`, `image` FROM `RV_Tracks` WHERE `userId` = '{artistId.FirstOrDefault()}'", new[] { "track", "image" });
-            if (artistId.FirstOrDefault() == null)
-                botClient.SendTextMessageAsync(message.Chat, "Свободные треки для прослушивания не найдены!", replyMarkup: back);
+            long userId = callback.From.Id;
+            var actions = Keyboard.actions;
+            var artistId = from rvMember in MemberRoot.newMembers where (rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
+            if (!artistId.Any())
+            {
+                await botClient.AnswerCallbackQueryAsync(callback.Id, "Свободные треки для прослушивания не найдены!", showAlert: true);
+                Program.updateRvLocation(userId, RvLocation.CriticMenu);
+                await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} открыл судейское меню \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+            }
+                
             else
             {
                 PreListener preListener = new() 
-                { ArtistId = long.Parse(artistId.FirstOrDefault()), ListenerId = userId };
-                preListeners.Add(preListener);
+                { ArtistId = artistId.First(), ListenerId = userId };
+                RvCritic.Get(userId).PreListening = preListener;
+                var trackCard = RvMember.Get(artistId.First()).Track;
+                var trackName = RvMember.Get(artistId.First()).TrackStr;
                 database.Read($"INSERT INTO `RV_PreListening` (`listenerId`, `artistId`) VALUES ('{Get(userId).ListenerId}', '{Get(userId).ArtistId}');", "");
-                foreach (var track in trackCard)
-                {
-                    database.Read($"UPDATE `RV_Tracks` SET `status` = 'checked' WHERE `userId` = {artistId.FirstOrDefault()};", "");
-                    botClient.SendDocumentAsync(message.Chat, new InputFileId(track["track"].ToString()), caption: $"Название: {trackName.FirstOrDefault()}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
-                    botClient.SendPhotoAsync(message.Chat, new InputFileId(track["image"].ToString()), caption: "Обложка ремикса");
-                    botClient.SendTextMessageAsync(message.Chat, "Выбери действие", replyMarkup: actions);
-                }
-                botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} начал предварительное прослушивание\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                trackCard.Status = "checked";
+                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackCard.Track), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
+                await botClient.SendPhotoAsync(callback.Message.Chat, new InputFileId(trackCard.Image), caption: "Обложка ремикса");
+                await botClient.SendTextMessageAsync(callback.Message.Chat, "Выбери действие", replyMarkup: actions);
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.Message.From.Username} начал предварительное прослушивание\n=====\nId:{callback.Message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
             }
         }
 
-        public static void NextTrack(ITelegramBotClient botClient, Message message)
+        public static async Task NextTrack(ITelegramBotClient botClient, CallbackQuery callback)
         {
-            ReplyKeyboardMarkup back = new(new[]
-                    { new[] { new KeyboardButton("Назад") } })
-                { ResizeKeyboard = true };
-            ReplyKeyboardMarkup actions = Keyboard.actions;
-            long userId = message.From.Id;
+            var actions = Keyboard.actions;
+            long userId = callback.From.Id;
+            RvMember.Get(Get(userId).ArtistId).Track.Status = "ok";
 
-            var artistId = database.Read($"SELECT `userId` FROM `RV_Tracks` WHERE `status` = 'waiting' AND `userId` != '{userId}' AND `track` IS NOT NULL AND `image` IS NOT NULL LIMIT 1", "userId");
-            var trackName = database.Read($"SELECT `track` FROM `RV_Members` WHERE `userId` = {artistId.FirstOrDefault()};", "track");
-            var trackCard = database.ExtRead($"SELECT `track`, `image` FROM `RV_Tracks` WHERE `userId` = {artistId.FirstOrDefault()}", new[] { "track", "image" });
-            if (artistId.FirstOrDefault() == null)
-                botClient.SendTextMessageAsync(message.Chat, "Свободные треки для прослушивания не найдены!", replyMarkup: back);
+            var artistId = from rvMember in MemberRoot.newMembers where(rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
+            var trackName = RvMember.Get(artistId.First()).TrackStr;
+            if (!artistId.Any())
+            {
+                await botClient.AnswerCallbackQueryAsync(callback.Id, "Свободные треки для прослушивания не найдены!", showAlert: true);
+                Program.updateRvLocation(userId, RvLocation.CriticMenu);
+                await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} открыл судейское меню \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+            }
             else
             {
-                Get(userId).ArtistId = long.Parse(artistId.FirstOrDefault());
-                foreach (var track in trackCard)
-                {
-                    database.Read($"UPDATE `RV_Tracks` SET `status` = 'checked' WHERE `userId` = {artistId.FirstOrDefault()};", "");
-                    botClient.SendDocumentAsync(message.Chat, new InputFileId(track["track"].ToString()), caption: $"Название: {trackName.FirstOrDefault()}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
-                    botClient.SendPhotoAsync(message.Chat, new InputFileId(track["image"].ToString()), caption: "Обложка ремикса");
-                    botClient.SendTextMessageAsync(message.Chat, "Выбери действие", replyMarkup: actions);
-                }
+                Get(userId).ArtistId = artistId.First();
+                var artist = RvMember.Get(Get(userId).ArtistId).Track;
+                
+                artist.Status = "checked";
+                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(artist.Track), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
+                await botClient.SendPhotoAsync(callback.Message.Chat, new InputFileId(artist.Image), caption: "Обложка ремикса");
+                await botClient.SendTextMessageAsync(callback.Message.Chat, "Выбери действие", replyMarkup: actions);
             }
         }
 
         public static PreListener Get(long userId)
         {
-            foreach (var preListener in preListeners)
-            {
-                if (preListener.ListenerId == userId)
-                    return preListener;
-            }
+            foreach (var preListener in CriticRoot.newCritics)
+                if (preListener.UserId == userId)
+                    return preListener.PreListening;
 
             return null;
         }

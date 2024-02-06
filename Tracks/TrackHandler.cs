@@ -9,46 +9,71 @@ using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 //система чтения, записи и отправки треков
 namespace RightVisionBot.Tracks
 {
-    class TrackInfo
+    public class TrackInfo
     {
-        public long UserId { get; set; }
-        public string? Track = null;
-        public string? Image = null;
-        public string? Text = null;
+        public long UserId;
+
+        private string _status = "waiting";
+        public string Status { get => _status; set { _status = value; NewString(value, nameof(Status)); } }
+
+        private string? _track = null;
+        public string? Track { get => _track; set { _track = value; NewString(value, nameof(Track)); } }
+
+        private string? _image = null;
+        public string? Image { get => _image; set { _image = value; NewString(value, nameof(Image)); } }
+
+        private string? _text = null;
+        public string? Text { get => _text; set { _text = value; NewString(value, nameof(Text)); } }
+
+        private string NewString(string value, string property)
+        { _OnPropertyChanged(property, value); return value; }
+
+        public event Action<string> OnPropertyChanged = delegate { };
+        private void _OnPropertyChanged(string property, string value)
+        { OnPropertyChanged(property); UpdateDatabase(property, value); }
+
+        private void UpdateDatabase(string property, string value)
+        {
+            sql database = Program.database;
+            database.Read($"UPDATE `RV_Tracks` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
+        }
     }
 
-    class Track
+    public class Track
     {
         public static volatile List<TrackInfo> Tracks = new List<TrackInfo>();
         private static sql database = Program.database;
-        public static void Send(ITelegramBotClient botClient, Message message)
+        public static async Task Send(ITelegramBotClient botClient, Message? message = null, CallbackQuery? callback = null)
         {
-            long userId = message.From.Id;
+            long userId = message != null ? message.From.Id : callback.From.Id;
             if (GetTrack(userId) != null)
-                    TrackCard(true, botClient, message);
+                TrackCard(true, botClient, message, callback);
             else
             {
-                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_CreatingCard", RvUser.Get(userId).Lang));
-                    TrackInfo track = new() { UserId = userId };
-                    Tracks.Add(track);
-                    database.Read($"INSERT INTO `RV_Tracks`(`userId`) VALUES ({userId});", "");
-                    TrackCard(false, botClient, message);
+                await botClient.SendTextMessageAsync(callback.Message.Chat, Language.GetPhrase("Profile_Track_CreatingCard", RvUser.Get(userId).Lang));
+                TrackInfo track = new() { UserId = userId };
+                Tracks.Add(track);
+                database.Read($"INSERT INTO `RV_Tracks`(`userId`) VALUES ({userId});", "");
+                TrackCard(false, botClient, callback:callback);
             }
         }
 
-        public static void TrackCard(bool isExists, ITelegramBotClient botClient, Message message)
+        public static void TrackCard(bool isExists, ITelegramBotClient botClient, Message? message = null, CallbackQuery? callback = null)
         {
-            long userId = message.From.Id;
+            long userId = message != null? message.From.Id : callback.From.Id;
+            RvUser rvUser = RvUser.Get(userId);
             InlineKeyboardMarkup inline = new(
                 new[]
                 {
-                    new[] { InlineKeyboardButton.WithCallbackData("🔎" + Language.GetPhrase("Profile_Track_CheckTrack", RvUser.Get(userId).Lang) + "♂", "t_CheckTrack")  },
-                    new[] { InlineKeyboardButton.WithCallbackData("🔎" + Language.GetPhrase("Profile_Track_CheckImage", RvUser.Get(userId).Lang) + "🖼", "t_CheckImage") },
-                    new[] { InlineKeyboardButton.WithCallbackData("🔎" + Language.GetPhrase("Profile_Track_CheckText", RvUser.Get(userId).Lang) + "📝", "t_CheckText") }
+                    new[] { InlineKeyboardButton.WithCallbackData("🔎" + Language.GetPhrase("Profile_Track_CheckTrack", rvUser.Lang) + "♂", "t_CheckTrack")  },
+                    new[] { InlineKeyboardButton.WithCallbackData("🔎" + Language.GetPhrase("Profile_Track_CheckImage", rvUser.Lang) + "🖼", "t_CheckImage") },
+                    new[] { InlineKeyboardButton.WithCallbackData("🔎" + Language.GetPhrase("Profile_Track_CheckText", rvUser.Lang) + "📝", "t_CheckText") },
+                    new[] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_profile"),  }
                 });
             /*
             ReplyKeyboardMarkup keyboard = new(new[]
@@ -61,107 +86,81 @@ namespace RightVisionBot.Tracks
                 { ResizeKeyboard = true };
             */
             ReplyKeyboardMarkup keyboard = new(new[]
-                    { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", RvUser.Get(userId).Lang)) } })
-                { ResizeKeyboard = true };
+                    { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", rvUser.Lang)) } })
+            { ResizeKeyboard = true };
 
             Program.updateRvLocation(userId, RvLocation.TrackCard);
-            switch (isExists)
-            {
-                case false:
-                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_CreatingCard_Success", RvUser.Get(userId).Lang), replyMarkup: keyboard);
-                    botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} создал карточку ремикса\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
-                    break;
-                case true:
-                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_Card_HereItIs", RvUser.Get(userId).Lang), replyMarkup: keyboard);
-                    botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} открыл свою карточку ремикса\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
-                    break;
-            }
-            botClient.SendTextMessageAsync(message.Chat, 
-                $"{RvMember.Get(userId).Track}\n\n" 
-                + string.Format(Language.GetPhrase("Profile_Track_Card", RvUser.Get(userId).Lang) , IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))
-                + $"\n\n{CardStatus(userId, IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))}", replyMarkup: inline);
+            if (!isExists)
+                botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} создал карточку ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+
+            if (message != null)
+                botClient.SendTextMessageAsync(message.Chat, 
+                    $"{RvMember.Get(userId).TrackStr}\n\n"
+                    + string.Format(Language.GetPhrase("Profile_Track_Card", rvUser.Lang), IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))
+                    + $"\n\n{CardStatus(RvUser.Get(userId).Lang, IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))}", replyMarkup: inline);
+            else
+                botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
+                    $"{RvMember.Get(userId).TrackStr}\n\n"
+                    + string.Format(Language.GetPhrase("Profile_Track_Card", rvUser.Lang), IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))
+                    + $"\n\n{CardStatus(RvUser.Get(userId).Lang, IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))}", replyMarkup: inline);
         }
 
-        public static string IsTrackSent(long userId)
-        {
-            if (GetTrack(userId) != null)
-                return Language.GetPhrase(GetTrack(userId).Track != null? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang);
-
-            return null;
-        }
-
-        public static string IsImageSent(long userId)
-        {
-            if (GetTrack(userId) != null)
-                return Language.GetPhrase(GetTrack(userId).Image != null? "Profile_Track_ImageSent" : "Profile_Track_ImageNotSent", RvUser.Get(userId).Lang);
-
-            return null;
-        }
-
-        public static string IsTextSent(long userId)
-        {
-            if (GetTrack(userId) != null)
-                return Language.GetPhrase(GetTrack(userId).Text != null? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang);
-
-            return null;
-        }
+        public static string IsTrackSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Track != null ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
+        public static string IsImageSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Image != null ? "Profile_Track_ImageSent" : "Profile_Track_ImageNotSent", RvUser.Get(userId).Lang) : null;
+        public static string IsTextSent(long userId) =>  GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Text != null  ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
 
         public static TrackInfo GetTrack(long userId)
         {
-            foreach (var trackInfo in Tracks)
-            {
-                if (trackInfo.UserId == userId) 
-                    return trackInfo;
-            }
+            foreach (var trackInfo in MemberRoot.newMembers)
+                if (trackInfo.Track != null && trackInfo.Track.UserId == userId)
+                    return trackInfo.Track;
+
             return null;
         }
 
         public static void SendFilesByOne(ITelegramBotClient botClient, int number)
         {
-            List<Dictionary<string, object>> files;
-            if(number == 1) files = database.ExtRead($"SELECT * FROM RV_Tracks LIMIT 1 OFFSET 1;", new[] { "userId", "track", "image", "text" });
-            else files = database.ExtRead($"SELECT * FROM RV_Tracks LIMIT 1 OFFSET {number - 1};", new[] { "userId", "track", "image", "text" });
+            List<string> user;
+            if (number == 1) user = database.Read("SELECT * FROM RV_Tracks LIMIT 1;", "userId");
+            else user = database.Read($"SELECT * FROM RV_Tracks LIMIT 1 OFFSET {number - 1};", "userId");
 
-            foreach (var file in files)
+            RvMember member = RvMember.Get(long.Parse(user.FirstOrDefault()));
+            try
             {
-                var track = database.Read($"SELECT `track` FROM `RV_Members` WHERE `userId` = '{file["userId"]}';", "track");
+                botClient.SendDocumentAsync(-1001968408177, new InputFileId(member.Track.Track),
+                    caption:
+                    $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                botClient.SendPhotoAsync(-1001968408177, new InputFileId(member.Track.Image),
+                    caption:
+                    $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                botClient.SendDocumentAsync(-1001968408177, new InputFileId(member.Track.Text),
+                    caption:
+                    $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+            }
+            catch
+            {
                 try
                 {
-                    botClient.SendDocumentAsync(-1001968408177, new InputFileId(file["track"].ToString()),
+                    botClient.SendDocumentAsync(-1001968408177, new InputFileId(member.Track.Track),
                         caption:
-                        $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                    botClient.SendPhotoAsync(-1001968408177, new InputFileId(file["image"].ToString()),
+                        $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                    botClient.SendPhotoAsync(-1001968408177, new InputFileId(member.Track.Image),
                         caption:
-                        $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                    botClient.SendDocumentAsync(-1001968408177, new InputFileId(file["text"].ToString()),
-                        caption:
-                        $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
+                        $"Название: {member.TrackStr}\nКатегория: {member.Status}");
                 }
                 catch
                 {
-                    try
-                    {
-                        botClient.SendDocumentAsync(-1001968408177, new InputFileId(file["track"].ToString()),
-                            caption:
-                            $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                        botClient.SendPhotoAsync(-1001968408177, new InputFileId(file["image"].ToString()),
-                            caption:
-                            $"Название: {track.FirstOrDefault()}\nКатегория: {RvMember.Get(long.Parse(file["userId"].ToString())).Status}");
-                    }
-                    catch
-                    {
-                        botClient.SendTextMessageAsync(-1001968408177, "Текста и обложки нет, пропускаю...");
-                    }
+                    botClient.SendTextMessageAsync(-1001968408177, "Текста и обложки нет, пропускаю...");
                 }
             }
         }
 
-        public static string CardStatus(long userId, string track, string image, string text)
+        public static string CardStatus(string lang, string track, string image, string text)
         {
-            if (track == Language.GetPhrase("Profile_Track_TrackSent", RvUser.Get(userId).Lang)
-                && image == Language.GetPhrase("Profile_Track_ImageSent", RvUser.Get(userId).Lang)
-                && text  == Language.GetPhrase("Profile_Track_TextSent", RvUser.Get(userId).Lang))
-                return Language.GetPhrase("Profile_Track_Card_Full", RvUser.Get(userId).Lang);
+            if (track == Language.GetPhrase("Profile_Track_TrackSent", lang)
+                && image == Language.GetPhrase("Profile_Track_ImageSent", lang)
+                && text == Language.GetPhrase("Profile_Track_TextSent", lang))
+                return Language.GetPhrase("Profile_Track_Card_Full", lang);
             else
                 return string.Empty;
         }

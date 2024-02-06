@@ -6,33 +6,29 @@ using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot;
 using RightVisionBot.Tracks;
+using RightVisionBot.User;
 
 namespace RightVisionBot.Back.Callbacks
 {
     class TrackCard
     {
-        private static sql database = Program.database;
-
         public static async Task Callbacks(ITelegramBotClient botClient, Update update)
         {
             var callback = update.CallbackQuery;
             long callbackUserId = callback.From.Id;
             var callbackQuery = callback.Data;
-            string fullname = callback.From.FirstName + callback.From.LastName;
-            var CuratorId = database.Read($"SELECT * FROM `RV_Curators` WHERE `userId` = '{callback.From.Id}';", "id");
-            string curatorId = CuratorId.FirstOrDefault();
 
             switch (callbackQuery)
             {
                 case "t_CheckTrack":
                     try
                     {
-                        var track = new InputFileId(Track.GetTrack(callbackUserId).Track);
+                        var track = new InputFileId(RvMember.Get(callbackUserId).Track.Track);
                         await botClient.SendDocumentAsync(callbackUserId, track,
                             caption: "Это файл твоего ремикса, который ты скидывал!");
                     }
                     catch
-                    { await botClient.SendTextMessageAsync(callbackUserId, "Ты ещё не скидывал ремикс!"); }
+                    { await botClient.AnswerCallbackQueryAsync(callback.Id, "Ты ещё не скидывал ремикс!", showAlert: true); }
 
                     break;
                 case "t_CheckImage":
@@ -43,7 +39,7 @@ namespace RightVisionBot.Back.Callbacks
                             caption: "Это обложка ремикса, которую ты скидывал!");
                     }
                     catch
-                    { await botClient.SendTextMessageAsync(callbackUserId, "Ты ещё не скидывал обложку!"); }
+                    { await botClient.AnswerCallbackQueryAsync(callback.Id, "Ты ещё не скидывал обложку!", showAlert: true); }
 
                     break;
                 case "t_CheckText":
@@ -54,7 +50,7 @@ namespace RightVisionBot.Back.Callbacks
                             caption: "Это файл текста твоего ремикса, который ты скидывал!");
                     }
                     catch
-                    { await botClient.SendTextMessageAsync(callbackUserId, "Ты ещё не скидывал текст!"); }
+                    { await botClient.AnswerCallbackQueryAsync(callback.Id, "Ты ещё не скидывал текст!", showAlert: true); }
                     break;
             }
         }

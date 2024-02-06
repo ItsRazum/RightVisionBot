@@ -56,7 +56,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 Console.WriteLine($"Рассылка завершена. {i} получили сообщение, {b} не получили");
             }
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
     }
 }

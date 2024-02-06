@@ -14,21 +14,20 @@ namespace RightVisionBot.Back.Forms
 {
     class Member
     {
-        private static InlineKeyboardMarkup memberAcceptOrDeny = Keyboard.memberAcceptOrDeny;
         public static void Form(ITelegramBotClient botClient, Message message)
         {
-            sql database = Program.database;
-            long userId = message.From.Id;
+            var database = Program.database;
+            var userId = message.From.Id;
             var chooseRate = Keyboard.chooseRate(RvUser.Get(userId).Lang);
             var backButton = Keyboard.backButton(RvUser.Get(userId).Lang);
-            var MainMenu =   Keyboard.MainMenu(RvUser.Get(userId).Lang);
+            var mainMenu =   Keyboard.MainMenu(RvUser.Get(userId).Lang);
+            var memberAcceptOrDeny = Keyboard.memberAcceptOrDeny;
             var member = RvMember.Get(userId);
-            string back = Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang);
+            var back = Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang);
 
-            if (member != null &&
-                member.UserId == userId)
+            if (member != null && member.UserId == userId)
             {
-                if (message.Text == "0" || message.Text.Contains("'"))
+                if (message.Text == "0" || message.Text.Contains('\''))
                     botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_DontEnterZero", RvUser.Get(userId).Lang));
                 else
                     if (member.Name == "0")
@@ -93,7 +92,7 @@ namespace RightVisionBot.Back.Forms
                             botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterTrack", RvUser.Get(userId).Lang), replyMarkup: backButton);
                         }
 
-                    else if (member.Rate != "0" && member.Track == "0")
+                    else if (member.Rate != "0" && member.TrackStr == "0")
                         if (message.Text == back)
                         {
                             member.Rate = "0";
@@ -101,11 +100,10 @@ namespace RightVisionBot.Back.Forms
                         }
                         else
                         {
-                            member.Track = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_FormSubmitted", RvUser.Get(userId).Lang), replyMarkup: MainMenu);
+                            member.TrackStr = message.Text;
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_FormSubmitted", RvUser.Get(userId).Lang), replyMarkup: mainMenu);
                             botClient.SendTextMessageAsync(-1001968408177,
                                 $"Пришла новая заявка на участие!\n\n" +
-                                $"Id: {member.UserId}\n" +
                                 $"Имя: {member.Name}\n" +
                                 $"Тег: {member.Telegram}\n" +
                                 $"Страна проживания: {member.Country}\n" +
@@ -115,8 +113,9 @@ namespace RightVisionBot.Back.Forms
                                 $"Его трек внесён в базу и пока что держится в тайне!\n" +
                                 $"\n" +
                                 $"Тот, кто возьмёт кураторство над участником, обязан будет проверить канал и выдать категорию! В случае, если ссылки нету - провести лично с ним проверку мастерства и также выдать категорию!",
-                                replyMarkup: memberAcceptOrDeny);
-                        }
+                                replyMarkup: memberAcceptOrDeny(userId));
+                            RvUser.Get(member.UserId).RemovePermission(Permission.SendMemberForm);
+                    }
                 
             }
         }

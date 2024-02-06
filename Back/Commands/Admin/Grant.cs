@@ -25,7 +25,7 @@ namespace RightVisionBot.Back.Commands.Admin
                     }
                     else
                     {
-                        string[] args = message.Text.Replace("назначить", "").Split(' ');
+                        string[] args = message.Text.Replace("назначить ", "").Split(' ');
                         rvUser = RvUser.Get(long.Parse(args[0]));
                         newRole = Enum.Parse<Role>(args[1]);
                     }
@@ -40,7 +40,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 }
 
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
 
         public static async Task Perm(ITelegramBotClient botClient, Message message, RvUser _rvUser)
@@ -61,7 +61,10 @@ namespace RightVisionBot.Back.Commands.Admin
                         newPermission = Enum.Parse<Permission>(args[1]);
                         rvUser = RvUser.Get(long.Parse(args[0]));
                     }
-                    rvUser.AddPermissions(array: new[] { newPermission });
+
+                    try { rvUser.AddPermissions(array: new[] { newPermission }); }
+                    catch { await botClient.SendTextMessageAsync(message.Chat, "Пользователь не найден!"); }
+
                     await botClient.SendTextMessageAsync(message.Chat, $"Пользователь получает право: Permission.{newPermission}");
                 }
                 catch
@@ -69,7 +72,7 @@ namespace RightVisionBot.Back.Commands.Admin
                     await botClient.SendTextMessageAsync(message.Chat, "Запрашиваемое право не найдено!");
                 }
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
     }
 }

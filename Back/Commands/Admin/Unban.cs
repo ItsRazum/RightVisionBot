@@ -27,9 +27,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 catch{}
             }
             catch
-            {
-                await botClient.SendTextMessageAsync(message.Chat, "Пользователь не забанен!");
-            }
+            { await botClient.SendTextMessageAsync(message.Chat, "Пользователь не забанен!"); }
         }
 
         public static async Task Unmute(ITelegramBotClient botClient, RvUser rvUser, Message message)
@@ -65,7 +63,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 }
             }
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
 
         public static async Task BlacklistOff(ITelegramBotClient botClient, RvUser rvUser, Message message)
