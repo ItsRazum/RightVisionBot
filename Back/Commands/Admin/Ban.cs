@@ -22,13 +22,15 @@ namespace RightVisionBot.Back.Commands.Admin
 
         public static async Task Mute(ITelegramBotClient botClient, RvUser rvUser, Message message)
         {
-            long mutedId = message.ReplyToMessage.From.Id == null ? long.Parse(message.Text.Replace("/mute ", "")) : message.ReplyToMessage.From.Id;
+            long mutedId = message.ReplyToMessage.From.Id == null ? long.Parse(message.Text.Replace("/mute", "")) : message.ReplyToMessage.From.Id;
             ChatMember mutedMember = await botClient.GetChatMemberAsync(message.Chat, mutedId);
             string groupType = message.Chat.Id == -1001968408177 ? "организаторов" : "участников";
-            if (mutedMember.Status is ChatMemberStatus.Member)
+            if (mutedMember.Status is ChatMemberStatus.Member or ChatMemberStatus.Restricted)
             {
                 Telegram.Bot.Types.User mutedUser = mutedMember.User;
                 DateTime time = DateTime.Now.AddHours(1);
+
+                RvUser.Get(mutedId).AddPunishment(RvPunishment.PunishmentType.Mute, message.Chat.Id, "не указана", DateTime.Now,time);
                 await botClient.SendTextMessageAsync(message.Chat, $"Пользователь {mutedUser.FirstName} получает мут в группе!");
                 await botClient.RestrictChatMemberAsync(message.Chat, mutedId, new ChatPermissions()
                 {
@@ -62,9 +64,11 @@ namespace RightVisionBot.Back.Commands.Admin
                 long bannedId = message.ReplyToMessage.From.Id == null ? long.Parse(message.Text.Replace("/ban", "")) : message.ReplyToMessage.From.Id;
                 ChatMember bannedMember = await botClient.GetChatMemberAsync(message.Chat, bannedId);
                 string groupType = message.Chat.Id == -1001968408177 ? "организаторов" : "участников";
-                if (bannedMember != null)
+                if (bannedMember.Status is ChatMemberStatus.Member)
                 {
                     Telegram.Bot.Types.User bannedUser = bannedMember.User;
+
+                    RvUser.Get(bannedUser.Id).AddPunishment(RvPunishment.PunishmentType.Ban, message.Chat.Id, "не указана", DateTime.Now, DateTime.Now.AddDays(7));
                     await botClient.SendTextMessageAsync(message.Chat, $"Пользователь {bannedUser.FirstName} получает бан в группе!");
                     await botClient.BanChatMemberAsync(message.Chat, bannedId);
                     try
@@ -88,8 +92,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 long bannedId = message.ReplyToMessage.From.Id == null ? long.Parse(message.Text.Replace("/blacklist ", "")) : message.ReplyToMessage.From.Id;
                 ChatMember bannedMember = await botClient.GetChatMemberAsync(message.Chat, bannedId);
                 var bannedUser = bannedMember.User;
-                await botClient.SendTextMessageAsync(message.Chat,
-                    $"Пользователь {bannedUser.FirstName} вносится в чёрный список RightVision!");
+                await botClient.SendTextMessageAsync(message.Chat, $"Пользователь {bannedUser.FirstName} вносится в чёрный список RightVision!");
                 await botClient.BanChatMemberAsync(-1002074764678, bannedId);
                 await botClient.BanChatMemberAsync(-1001968408177, bannedId);
                 try
@@ -133,7 +136,7 @@ namespace RightVisionBot.Back.Commands.Admin
                     await botClient.SendTextMessageAsync(message.Chat, $"Безбилетников в группе нет. Всё в порядке!");
             }
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
 
         public static async Task KickHares(ITelegramBotClient botClient, long chatId)

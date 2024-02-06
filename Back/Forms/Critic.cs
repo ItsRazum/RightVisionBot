@@ -14,7 +14,6 @@ namespace RightVisionBot.Back.Forms
 {
     class Critic
     {
-        private static InlineKeyboardMarkup criticAcceptOrDeny = Keyboard.criticAcceptOrDeny;
         public static void Form(ITelegramBotClient botClient, Message message)
         {
             sql database = Program.database;
@@ -94,14 +93,14 @@ namespace RightVisionBot.Back.Forms
                             botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_FormSubmitted", RvUser.Get(userId).Lang), replyMarkup: MainMenu);
                             botClient.SendTextMessageAsync(-1001968408177,
                                 $"Пришла новая заявка на должность судьи!\n\n" +
-                                $"Id: {critic.UserId}\n" +
                                 $"Имя: {critic.Name}\n" +
                                 $"Тег: {critic.Telegram}\n" +
                                 $"Ссылка на канал: {critic.Link}\n" +
                                 $"Субъективная оценка навыков: {critic.Rate}\n" +
                                 $"Что написал о себе: {critic.About}\n" +
                                 $"Почему мы должны его принять: {critic.WhyYou}\n",
-                                replyMarkup: criticAcceptOrDeny);
+                                replyMarkup: Keyboard.criticAcceptOrDeny(critic.UserId));
+                            RvUser.Get(critic.UserId).RemovePermission(Permission.SendCriticForm);
                         }
             }
         }

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using RightVisionBot.Back.Commands;
 using RightVisionBot.Back.Commands.Admin;
@@ -8,6 +8,7 @@ using RightVisionBot.UI;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
+using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -19,11 +20,14 @@ namespace RightVisionBot.Back
     class Program
     {
         public static volatile List<RvUser> users = new();
-        public static readonly ITelegramBotClient botClient = new TelegramBotClient("Токен");
-        public static readonly sql database = new("Адрес MySQL");
+        public static readonly ITelegramBotClient botClient = new TelegramBotClient("6450629882:AAFLdecqtb0qvrLFGE2JHxX8HVMB07fvxZQ");
+        public static readonly sql database = new("server=127.0.0.1;uid=demid;pwd=Z2r757vnGK9J;database=phpmyadmin");
 
-        private Program()
+        static async Task Main(string[] args)
         {
+            if (args is null)
+                throw new ArgumentNullException(nameof(args));
+
             Console.WriteLine("Начался процесс запуска бота");
             Console.WriteLine("Восстановление данных пользователей...");
             DataRestorer.RestoreUsers();
@@ -36,12 +40,12 @@ namespace RightVisionBot.Back
 
             while (true)
             {
-                string command = Console.ReadLine();
+                string? command = Console.ReadLine();
                 if (command.StartsWith("send"))
                 {
                     string[] commandWithArgs = command.Split(" ");
                     string msg = string.Join(" ", commandWithArgs.Skip(2));
-                    botClient.SendTextMessageAsync(long.Parse(commandWithArgs[1]), msg);
+                    await botClient.SendTextMessageAsync(long.Parse(commandWithArgs[1]), msg);
                 }
                 else if (command == "stop")
                 {
@@ -52,14 +56,13 @@ namespace RightVisionBot.Back
                 {
                     Console.WriteLine("Начался процесс перезапуска...\n");
                     cts.Cancel();
+                    await Main(args);
                     break;
                 }
             }
         }
 
-        public static async Task Main(string[] args) => new Program();
-
-        public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
@@ -67,35 +70,48 @@ namespace RightVisionBot.Back
                 if (update.CallbackQuery != null)
                 {
                     var callback = update.CallbackQuery;
-                    if (callback.Data.StartsWith("c_"))
-                        await Callbacks.Critic.Callbacks(botClient, update);
-                    else if (callback.Data.StartsWith("m_"))
-                        await Callbacks.Member.Callbacks(botClient, update);
-                    else if (callback.Data.StartsWith("t_"))
-                        await Callbacks.TrackCard.Callbacks(botClient, update);
-                    else if (callback.Data.StartsWith("r_") || callback.Data.StartsWith("change"))
-                        await Callbacks.Evaluation.Callbacks(botClient, update);
+                    RvUser rvUser = RvUser.Get(callback.From.Id);
+
+                    if (!rvUser.Cooldown.Enabled && rvUser.Has(Permission.Messaging) && rvUser.RvLocation != RvLocation.Blacklist)
+                    {
+                        if (callback.Data.StartsWith("c_"))
+                            await Callbacks.Critic.Callbacks(botClient, update, rvUser);
+                        else if (callback.Data.StartsWith("m_"))
+                            await Callbacks.Member.Callbacks(botClient, update, rvUser);
+                        else if (callback.Data.StartsWith("t_"))
+                            await Callbacks.TrackCard.Callbacks(botClient, update);
+                        else if (callback.Data.StartsWith("r_") || callback.Data.StartsWith("change"))
+                            await Callbacks.Evaluation.Callbacks(botClient, update);
+                        else if (callback.Data.StartsWith("h_"))
+                            await Callbacks.Admin.Callbacks(botClient, update,
+                                RvUser.Get(update.CallbackQuery.From.Id));
+                        else if (callback.Data.StartsWith("menu_") || callback.Data.StartsWith("permissions_"))
+                            await Callbacks.MainMenu.Callbacks(botClient, update, rvUser);
+                    }
+                    else
+                        await botClient.AnswerCallbackQueryAsync(callback.Id, "Пожалуйста, не надо спамить! Если будешь продолжать - для тебя включится медленный режим, который может увеличиться вплоть до 10 секунд!", showAlert: true);
                 }
                 Message message = update.Message;
                 if (message != null)
                 {
                     if (message.NewChatMembers != null)
                     {
+                        string kickMessage = "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...";
                         var newUserId = message.NewChatMembers[0].Id;
                         var chatId = message.Chat.Id;
                         switch (chatId)
                         {
                             case -1002074764678:
-                                if (RvMember.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.MemberChat)) 
+                                if ((RvMember.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.MemberChat)) && RvUser.Get(message.From.Id).Role != Role.Admin)
                                 {
-                                    await botClient.SendTextMessageAsync(message.Chat, "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...");
+                                    await botClient.SendTextMessageAsync(message.Chat, kickMessage);
                                     await botClient.BanChatMemberAsync(message.Chat, newUserId);
                                 }
                                 break;
                             case -1001968408177:
-                                if (RvCritic.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.CriticChat))
+                                if ((RvCritic.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.CriticChat)) && RvUser.Get(message.From.Id).Role != Role.Admin)
                                 {
-                                    await botClient.SendTextMessageAsync(message.Chat, "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...");
+                                    await botClient.SendTextMessageAsync(message.Chat, kickMessage);
                                     await botClient.BanChatMemberAsync(message.Chat, newUserId);
                                 }
                                 break;
@@ -107,13 +123,16 @@ namespace RightVisionBot.Back
                         long userId = message.From.Id;
                         var rvUser = RvUser.Get(userId);
 
-                        await General.Registration(botClient, message);
+                        if (message.Document != null || message.Audio != null || message.Photo != null)
+                            await Document.Handling(botClient, message, rvUser);
+                        if (RvUser.Get(userId) == null || (RvUser.Get(userId) != null && RvUser.Get(userId).RvLocation != RvLocation.Blacklist))
+                            await General.Registration(botClient, message);
 
                         if (message.Text != null && rvUser != null && rvUser.Has(Permission.Messaging) && rvUser.RvLocation != RvLocation.Blacklist)
                         {
                             string lowercaseText = message.Text.ToLower();
                             await Document.Handling(botClient, message, rvUser);
-                            new General(Program.botClient).OnMessageReceived(rvUser, update, cancellationToken);
+                            await General.Commands(botClient, rvUser, update);
                             switch (rvUser.Status)
                             {
                                 case Status.Critic:
@@ -158,11 +177,6 @@ namespace RightVisionBot.Back
                                             break;
                                     }
                                     break;
-                                case "dictionary":
-                                    foreach (var dictionary in rvUser.Rewards)
-                                        foreach (var reward in dictionary)
-                                            Console.WriteLine($"Key: {reward.Key}, Value: {reward.Value}");
-                                    break;
                                 case "//rmkboard":
                                     if (message.From.Id == 901152811)
                                     {
@@ -173,21 +187,13 @@ namespace RightVisionBot.Back
                                 default:
                                     if (message.Chat.Type == ChatType.Private)
                                     {
-                                        if (RvMember.Get(userId) != null && RvMember.Get(userId).Track.Contains("_waiting+>"))
+                                        if (RvUser.Get(userId).RvLocation == RvLocation.EditTrack)
                                         {
-                                            if (message.Text == Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang))
-                                            {
-                                                RvMember.Get(userId).Track = RvMember.Get(userId).Track.Substring(10);
-                                                await UserProfile.Profile(message);
-                                            }
-                                            else
-                                            {
-                                                RvMember.Get(userId).Track = message.Text;
-                                                database.Read($"UPDATE `RV_C{RvMember.Get(userId).Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
-                                                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
-                                                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
-                                                await UserProfile.Profile(message);
-                                            }
+                                            RvMember.Get(userId).TrackStr = message.Text;
+                                            database.Read($"UPDATE `RV_C{RvMember.Get(userId).Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
+                                            await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
+                                            await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
+                                            await UserProfile.Profile(message);
                                         }
                                     }
                                     break;
@@ -198,7 +204,7 @@ namespace RightVisionBot.Back
                                 if (message.Text == Language.GetPhrase("Keyboard_Choice_EditTrack", rvUser.Lang) && message.Chat.Type == ChatType.Private)
                                 {
                                     ReplyKeyboardMarkup backButton = new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang)) }) { ResizeKeyboard = true };
-                                    RvMember.Get(userId).Track = "_waiting+>" + RvMember.Get(userId).Track;
+                                    RvMember.Get(userId).TrackStr = "_waiting+>" + RvMember.Get(userId).TrackStr;
                                     await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_EnterNewTrack", rvUser.Lang), replyMarkup: backButton);
                                 }
 

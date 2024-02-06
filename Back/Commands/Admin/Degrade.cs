@@ -32,34 +32,33 @@ namespace RightVisionBot.Back.Commands.Admin
             }
 
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
 
-        public static async Task Perm(ITelegramBotClient botClient, Message message, RvUser _rvUser)
+        public static async Task Perm(ITelegramBotClient botClient, Message message, RvUser rvUser2)
         {
-            if (_rvUser.Has(Permission.DegradePermission))
+            if (rvUser2.Has(Permission.DegradePermission))
             {
                 try
                 {
                     RvUser rvUser;
+                    Permission deletedPermission;
                     if (message.ReplyToMessage != null)
                     {
                         rvUser = RvUser.Get(message.ReplyToMessage.From.Id);
-                        Permission deletedPermission = Enum.Parse<Permission>(message.Text.Replace("-permission ", ""));
+                        deletedPermission = Enum.Parse<Permission>(message.Text.Replace("-permission ", ""));
                         if (rvUser.Has(deletedPermission))
-                        {
                             rvUser.RemovePermission(deletedPermission);
-                            await botClient.SendTextMessageAsync(message.Chat,
-                                $"С пользователя успешно снято право Permission.{deletedPermission}!");
-                        }
                     }
                     else
                     {
                         string[] args = message.Text.Replace("-permission ", "").Split(' ');
                         rvUser = RvUser.Get(long.Parse(args[0]));
-                        rvUser.Role = Enum.Parse<Role>(args[1]);
+                        deletedPermission = Enum.Parse<Permission>(args[1]);
+                        if (rvUser.Has(deletedPermission))
+                            rvUser.RemovePermission(deletedPermission);
                     }
-                    await botClient.SendTextMessageAsync(message.Chat, "Право успешно отобрано!");
+                    await botClient.SendTextMessageAsync(message.Chat, $"С пользователя успешно снято право Permission.{deletedPermission}!");
                 }
                 catch
                 {
@@ -67,7 +66,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 }
             }
             else
-                Permissions.NoPermission(message);
+                Permissions.NoPermission(message.Chat);
         }
     }
 }

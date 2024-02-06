@@ -77,7 +77,7 @@ class Permissions
 {
     private static ITelegramBotClient botClient = Program.botClient;
 
-    public static void NoPermission(Message message) => botClient.SendTextMessageAsync(message.Chat, "Извини, но у тебя нет права совершать это действие!");
+    public static void NoPermission(Chat chat) => botClient.SendTextMessageAsync(chat, "Извини, но у тебя нет права совершать это действие!");
 
     public static async Task Reset(ITelegramBotClient botClient, Message message, RvUser rvUser)
     {
@@ -124,12 +124,25 @@ class Permissions
                     repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Developer);
                     roleLayout = "Developer";
                     break;
+                case Role.SeniorModerator:
+                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.SeniorModerator);
+                    roleLayout = "SeniorModerator";
+                    break;
             }
 
             await botClient.SendTextMessageAsync(message.Chat, $"Выполнен сброс прав до стандартных для пользователя.\n\nИспользованные шаблоны:\n{statusLayout}\n{roleLayout}");
         }
         else
-            Permissions.NoPermission(message);
+            Permissions.NoPermission(message.Chat);
+    }
+
+    public static HashSet<Permission> AddPermissions(HashSet<Permission> permissions, HashSet<Permission> permissionsToAdd)
+    {
+        HashSet<Permission> newPermissions = new(permissions);
+        foreach (var permission in permissionsToAdd)
+            newPermissions.Add(permission);
+
+        return newPermissions;
     }
 }
 

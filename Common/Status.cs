@@ -14,6 +14,7 @@ public enum Role
     Designer,
     Translator,
     Moderator,
+    SeniorModerator,
     TechAdmin,
     Curator,
     Developer,
@@ -30,5 +31,6 @@ public enum RvLocation
     MemberForm,
     PreListening,
     Evaluation,
+    EditTrack,
     Blacklist
 }

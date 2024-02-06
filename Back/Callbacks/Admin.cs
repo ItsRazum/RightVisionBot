@@ -14,24 +14,23 @@ namespace RightVisionBot.Back.Callbacks
     {
         public static async Task Callbacks(ITelegramBotClient botClient, Update update, RvUser rvUser)
         {
+            var callback = update.CallbackQuery;
+            var callbackQuery = callback.Data;
             if (rvUser.Has(Permission.Ban))
             {
-                var callback = update.CallbackQuery;
-                long callbackUserId = callback.From.Id;
-                var callbackQuery = callback.Data;
-                string fullname = callback.From.FirstName + callback.From.LastName;
-
                 switch (callbackQuery)
                 {
                     case "h_kick":
-                        await Restriction.KickHares(botClient, update.CallbackQuery.Message.Chat.Id);
+                        await Restriction.KickHares(botClient, callback.Message.Chat.Id);
                         break;
                     case "h_notkick":
-                        await botClient.EditMessageTextAsync(update.CallbackQuery.Message.Chat.Id,
+                        await botClient.EditMessageTextAsync(callback.Message.Chat.Id,
                             callback.Message.MessageId, "Кик безбилетников отменён!");
                         break;
                 }
             }
+            else
+                Permissions.NoPermission(callback.Message.Chat);
         }
     }
 }

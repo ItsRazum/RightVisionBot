@@ -24,10 +24,11 @@ namespace RightVisionBot.Back.Commands.Admin
                 case "авторизовать":
                     if (message.From.Id == 901152811 && message.ReplyToMessage != null)
                     {
-                        var CuratorId = Program.database.Read($"SELECT * FROM `RV_Curators` WHERE `userId` = '{message.ReplyToMessage.From.Id}';", "id");
-                        if (CuratorId != null)
+                        var curatorId = Program.database.Read($"SELECT * FROM `RV_Curators` WHERE `userId` = '{message.ReplyToMessage.From.Id}';", "id");
+                        if (curatorId.FirstOrDefault() != null)
                         {
                             Program.database.Read($"INSERT INTO `RV_Curators` (`id`) VALUES ('{message.ReplyToMessage.From.Id}');", "");
+                            RvUser.Get(message.ReplyToMessage.From.Id).AddPermissions(array:new [] { Permission.Curate });
                             await botClient.SendTextMessageAsync(message.Chat, "Пользователь авторизован. Теперь он может брать кураторство над кандидатами (судьи и участники)");
                         }
                         else
@@ -68,6 +69,9 @@ namespace RightVisionBot.Back.Commands.Admin
 
             else if (message.Text.StartsWith("/blacklist on "))
                 await Restriction.Blacklist(botClient, rvUser, message);
+
+            else if (message.Text.StartsWith("/blacklist off"))
+                await Unbans.BlacklistOff(botClient, rvUser, message);
 
             else if (message.Text.ToLower().StartsWith("заблокировать ") && rvUser.Has(Permission.Block))
             {

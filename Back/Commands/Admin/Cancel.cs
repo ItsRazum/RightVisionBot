@@ -16,14 +16,14 @@ namespace RightVisionBot.Back.Commands.Admin
         public static async Task Participation(ITelegramBotClient botClient, Message message)
         {
             string newMessage = message.Text.ToLower().Replace("аннулировать участие ", "");
-            var memberAsList = database.Read($"SELECT `userId` FROM `RV_Members` WHERE `userId` = '{newMessage}';", "userId");
-            if (memberAsList.FirstOrDefault() == null)
+            if (RvMember.Get(long.Parse(newMessage)) == null)
                 await botClient.SendTextMessageAsync(message.Chat, "Пользователь не найден!");
             else
             {
                 database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{newMessage}';", "");
                 MemberRoot.newMembers.Remove(RvMember.Get(long.Parse(newMessage)));
 
+                RvUser.Get(long.Parse(newMessage)).AddPermissions(array: new [] { Permission.SendMemberForm });
                 await botClient.SendTextMessageAsync(message.Chat, $"Участие пользователя Id:{newMessage} аннулировано");
                 await botClient.SendTextMessageAsync(long.Parse(newMessage),
                     string.Format(Language.GetPhrase("Member_Messages_FormCanceled",
@@ -35,14 +35,15 @@ namespace RightVisionBot.Back.Commands.Admin
         public static async Task Critic(ITelegramBotClient botClient, Message message)
         {
             string newMessage = message.Text.ToLower().ToLower().Replace("аннулировать судейство ", "");
-            CriticRoot.newCritics.Remove(RvCritic.Get(long.Parse(newMessage)));
 
-            var criticAsList = database.Read($"SELECT `userId` FROM `RV_Critics` WHERE `userId` = '{newMessage}';", "userId");
-            if (criticAsList.FirstOrDefault() == null)
+            if (RvCritic.Get(long.Parse(newMessage)) == null)
                 await botClient.SendTextMessageAsync(message.Chat, "Пользователь не найден!");
             else
             {
                 database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{newMessage}';", "");
+                CriticRoot.newCritics.Remove(RvCritic.Get(long.Parse(newMessage)));
+                RvUser.Get(long.Parse(newMessage)).AddPermissions(array: new[] { Permission.SendCriticForm });
+
                 await botClient.SendTextMessageAsync(message.Chat, $"Судейство пользователя Id:{newMessage} аннулировано");
                 await botClient.SendTextMessageAsync(long.Parse(newMessage),
                     string.Format(Language.GetPhrase("Critic_Messages_FormCanceled",

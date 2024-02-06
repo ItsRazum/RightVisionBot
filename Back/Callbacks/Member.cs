@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using RightVisionBot.Common;
+using RightVisionBot.Tracks;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -16,89 +17,18 @@ namespace RightVisionBot.Back.Callbacks
     {
         private static sql database = Program.database;
 
-        public static async Task Callbacks(ITelegramBotClient botClient, Update update)
+        public static async Task Callbacks(ITelegramBotClient botClient, Update update, RvUser rvUser)
         {
             var callback = update.CallbackQuery;
             long callbackUserId = callback.From.Id;
             var callbackQuery = callback.Data;
             string fullname = callback.From.FirstName + callback.From.LastName;
-            var CuratorId = database.Read($"SELECT * FROM `RV_Curators` WHERE `userId` = '{callback.From.Id}';", "id");
-            string curatorId = CuratorId.FirstOrDefault();
 
             switch (callbackQuery)
             {
-                case "m_accept":
-                    if (curatorId == null)
-                        return;
-                    else
-                    {
-                        Match match = Regex.Match(callback.Message.Text, @"Id:\s*(\d+)");
-                        long memberId = long.Parse(match.Groups[1].Value);
-
-                        RvMember.Get(memberId).Curator = callback.From.Id;
-                        var query =
-                            $"UPDATE `RV_Members` SET `curator` = '{callback.From.Id}' WHERE `userId` =  {memberId};";
-                        database.Read(query, "");
-                        await botClient.EditMessageTextAsync(callback.Message.Chat,
-                            update.CallbackQuery.Message.MessageId,
-                            $"{{m_Message}}\n\nОтветственный за участника: {update.CallbackQuery.From.FirstName}",
-                            replyMarkup: Keyboard.mCategories);
-                        await botClient.SendTextMessageAsync(-4074101060,
-                            $"Пользователь @{update.CallbackQuery.From.Username} взял кураторством над участником Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}",
-                            disableNotification: true);
-                    }
-
-                    break;
-                case "m_deny":
-                    if (curatorId == null)
-                        return;
-                    else
-                    {
-                        Match match = Regex.Match(callback.Message.Text, @"Id:\s*(\d+)");
-                        long memberId = long.Parse(match.Groups[1].Value);
-
-                        RvMember.Get(memberId).Curator = callback.From.Id;
-                        var query =
-                            $"UPDATE `RV_Members` SET `curator` = '{callback.From.Id}' WHERE `userId` =  {memberId};";
-                        database.Read(query, "");
-                        await botClient.EditMessageTextAsync(callback.Message.Chat,
-                            update.CallbackQuery.Message.MessageId,
-                            $"{{m_Message}}\n\nОтветственный за участника: {update.CallbackQuery.From.FirstName}\n❌Заявка отклонена!");
-                        await botClient.SendTextMessageAsync(memberId,
-                            string.Format(
-                                Language.GetPhrase("Member_Messages_FormDenied", RvUser.Get(memberId).Lang),
-                                fullname));
-                        var updateMemberStatus =
-                            $"UPDATE `RV_Members` SET `status` = 'denied' WHERE `userId` = {memberId};";
-                        database.Read(updateMemberStatus, "");
-                        await botClient.SendTextMessageAsync(-4074101060,
-                            $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру участника Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}",
-                            disableNotification: true);
-                    }
-
-                    break;
-
-
                 case "m_deny2":
                     {
-                        Match match = Regex.Match(callback.Message.Text, @"Id:\s*(\d+)");
-                        long memberId = long.Parse(match.Groups[1].Value);
-                        if (callback.From.Id == RvMember.Get(memberId).Curator)
-                        {
-                            await botClient.EditMessageTextAsync(callback.Message.Chat,
-                                update.CallbackQuery.Message.MessageId,
-                                $"{callback.Message.Text}\n❌Заявка отклонена!");
-                            await botClient.SendTextMessageAsync(memberId,
-                                string.Format(
-                                    Language.GetPhrase("Member_Messages_FormDenied", RvUser.Get(memberId).Lang),
-                                    fullname));
-                            var updateMemberStatus =
-                                $"UPDATE `RV_Members` SET `status` = 'denied' WHERE `userId` = {memberId};";
-                            database.Read(updateMemberStatus, "");
-                            await botClient.SendTextMessageAsync(-4074101060,
-                                $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру участника Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}",
-                                disableNotification: true);
-                        }
+
                     }
                     break;
                 case "m_bronze":
@@ -116,6 +46,55 @@ namespace RightVisionBot.Back.Callbacks
                 case "m_send":
                     MemberRoot.EnterName(botClient, update);
                     break;
+                case "m_openmenu":
+                    await Track.Send(botClient, callback: callback);
+                    break;
+                case "m_edittrack":
+                    Program.updateRvLocation(callbackUserId, RvLocation.EditTrack);
+                    await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, Language.GetPhrase("Profile_Member_Track_EnterNewTrack", rvUser.Lang), replyMarkup: Keyboard.InlineBack(rvUser, RvLocation.Profile));
+                    break;
+            }
+
+            if (callbackQuery.StartsWith("m_accept-"))
+                if (rvUser.Has(Permission.Curate))
+                {
+                    long memberId = long.Parse(callbackQuery.Replace("m_accept-", ""));
+
+                    RvMember.Get(memberId).Curator = callback.From.Id;
+                    await botClient.EditMessageTextAsync(callback.Message.Chat, update.CallbackQuery.Message.MessageId, $"{callback.Message.Text}\n\nОтветственный за участника: {update.CallbackQuery.From.FirstName}", replyMarkup: Keyboard.mCategories(memberId));
+                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} взял кураторством над участником Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}", disableNotification: true);
+
+                }
+                else
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но у тебя нет права совершать это действие!", showAlert: true);
+
+            else if (callbackQuery.StartsWith("m_deny-"))
+                if (rvUser.Has(Permission.Curate))
+                {
+                    long memberId = long.Parse(callbackQuery.Replace("m_deny-", ""));
+
+                    RvMember.Get(memberId).Curator = callback.From.Id;
+                    await botClient.EditMessageTextAsync(callback.Message.Chat, update.CallbackQuery.Message.MessageId, $"{callback.Message.Text}\n\nОтветственный за участника: {update.CallbackQuery.From.FirstName}\n❌Заявка отклонена!");
+                    await botClient.SendTextMessageAsync(memberId, string.Format(Language.GetPhrase("Member_Messages_FormDenied", RvUser.Get(memberId).Lang), fullname));
+                    RvMember.Get(memberId).Status = "denied";
+                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру участника Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}", disableNotification: true);
+                }
+                else
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но у тебя нет права совершать это действие!", showAlert: true);
+
+            else if (callbackQuery.StartsWith("m_deny2-"))
+            {
+                long memberId = long.Parse(callbackQuery.Replace("m_deny2-", ""));
+
+                if (callback.From.Id == RvMember.Get(memberId).Curator)
+                {
+                    await botClient.EditMessageTextAsync(callback.Message.Chat, update.CallbackQuery.Message.MessageId, $"{callback.Message.Text}\n❌Заявка отклонена!");
+                    await botClient.SendTextMessageAsync(memberId, string.Format(Language.GetPhrase("Member_Messages_FormDenied", RvUser.Get(memberId).Lang), fullname));
+                    RvMember.Get(memberId).Status = "denied";
+                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру участника Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}", disableNotification: true);
+                }
+                else
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но у тебя нет права совершать это действие!", showAlert: true);
             }
         }
     }
