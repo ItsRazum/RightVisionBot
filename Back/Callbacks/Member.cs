@@ -9,7 +9,6 @@ using RightVisionBot.Tracks;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace RightVisionBot.Back.Callbacks
 {
@@ -26,11 +25,6 @@ namespace RightVisionBot.Back.Callbacks
 
             switch (callbackQuery)
             {
-                case "m_deny2":
-                    {
-
-                    }
-                    break;
                 case "m_bronze":
                     MemberRoot.SetMemberCategory(botClient, update, "🥉Bronze");
                     break;
@@ -66,7 +60,7 @@ namespace RightVisionBot.Back.Callbacks
 
                 }
                 else
-                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но у тебя нет права совершать это действие!", showAlert: true);
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, Language.GetPhrase("Messages_NoPermission", rvUser.Lang), showAlert: true);
 
             else if (callbackQuery.StartsWith("m_deny-"))
                 if (rvUser.Has(Permission.Curate))
@@ -80,7 +74,7 @@ namespace RightVisionBot.Back.Callbacks
                     await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру участника Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}", disableNotification: true);
                 }
                 else
-                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но у тебя нет права совершать это действие!", showAlert: true);
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, Language.GetPhrase("Messages_NoPermission", rvUser.Lang), showAlert: true);
 
             else if (callbackQuery.StartsWith("m_deny2-"))
             {
@@ -94,7 +88,7 @@ namespace RightVisionBot.Back.Callbacks
                     await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} отклонил кандидатуру участника Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(callbackUserId).Lang}", disableNotification: true);
                 }
                 else
-                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Извини, но у тебя нет права совершать это действие!", showAlert: true);
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, Language.GetPhrase("Messages_NoPermission", rvUser.Lang), showAlert: true);
             }
         }
     }

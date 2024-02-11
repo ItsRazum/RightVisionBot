@@ -49,7 +49,7 @@ namespace RightVisionBot.Back.Callbacks
                         Program.updateRvLocation(callbackUserId, RvLocation.Profile);
                         await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
                             UserProfile.ProfileFormat(message, RvUser.Get(callbackUserId)),
-                            replyMarkup: Keyboard.ProfileOptions(rvUser));
+                            replyMarkup: Keyboard.ProfileOptions(RvUser.Get(callbackUserId), message));
                     }
                     else
                         await botClient.AnswerCallbackQueryAsync(callback.Id, "К сожалению, у тебя нет права открывать профиль.", showAlert: true);

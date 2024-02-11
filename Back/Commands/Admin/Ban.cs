@@ -15,10 +15,7 @@ namespace RightVisionBot.Back.Commands.Admin
     {
         private static List<long> Hares = new();
 
-        private static string contacts = $"\nСчитаешь это ошибкой? Обратись к главным организаторам!" +
-                                         $"\n" +
-                                         $"\n@NtRazum - Демид" +
-                                         $"\n@Gachimaker - Глеб";
+        private static string Contacts(string lang) => Language.GetPhrase("Punishments_Contacts", lang);
 
         public static async Task Mute(ITelegramBotClient botClient, RvUser rvUser, Message message)
         {
@@ -47,8 +44,8 @@ namespace RightVisionBot.Back.Commands.Admin
                 try
                 {
                     await botClient.SendTextMessageAsync(mutedId,
-                        $"Уважаемый пользователь!\n\nТы получаешь мут в группе {groupType} на 1 час за нарушение правил поведения." +
-                        contacts);
+                        string.Format(Language.GetPhrase("Punishments_Mute_Notification", RvUser.Get(mutedId).Lang), groupType) +
+                        Contacts(RvUser.Get(mutedId).Lang));
                 }
                 catch
                 {
@@ -74,8 +71,8 @@ namespace RightVisionBot.Back.Commands.Admin
                     try
                     {
                         await botClient.SendTextMessageAsync(bannedId,
-                            $"Уважаемый пользователь!\n\nТы получаешь бан в группе {groupType} за нарушение правил поведения." +
-                            contacts);
+                            string.Format(Language.GetPhrase("Punishments_Ban_Notification", RvUser.Get(bannedId).Lang), groupType) +
+                            Contacts(RvUser.Get(bannedId).Lang));
                     }
                     catch
                     {
@@ -98,8 +95,8 @@ namespace RightVisionBot.Back.Commands.Admin
                 try
                 {
                     await botClient.SendTextMessageAsync(bannedId,
-                        $"Уважаемый пользователь!\n\nПо решению организаторов ты вносишься в чёрный список RightVision. С этого момента тебе недоступно использование бота и нахождение в наших официальных группах." +
-                                                                   contacts, replyMarkup: Keyboard.remove);
+                        Language.GetPhrase("Punishments_Blacklist_Notification", RvUser.Get(bannedId).Lang) +
+                                                                   Contacts(RvUser.Get(bannedId).Lang), replyMarkup: Keyboard.remove);
                 }
                 catch
                 {
@@ -146,7 +143,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 await botClient.BanChatMemberAsync(chatId, hare, DateTime.UtcNow.AddMinutes(1));
                 try
                 {
-                    await botClient.SendTextMessageAsync(hare, "Уважаемый пользователь!\n В ходе очистки группы участников от людей, которые больше не являются участниками, ты попал под чистку и был кикнут из группы. Если ты не хочешь терять связь с гачимейкерами и продолжать общение - рекомендую зайти в общую группу для гачимейкеров, управляемую организаторами RightVision - https://t.me/+3dUPNrr4QzozNGEy\nЖдём тебя в списках участников на следующем RightVision! :)");
+                    await botClient.SendTextMessageAsync(hare, Language.GetPhrase("Punishments_HareKick_Notification", RvUser.Get(hare).Lang));
                 }
                 catch { }
             }

@@ -44,7 +44,10 @@ namespace RightVisionBot.User
         private string _status = "0";
         public string Status { get => _status; set { _status = value; newString(value, nameof(Status)); } }
 
-        public PreListener PreListening;
+        private long _preListeningArtist = 0;
+        public long PreListeningArtist { get => _preListeningArtist; set { _preListeningArtist = value; newLong(value, nameof(PreListeningArtist)); } }
+
+        public CriticVote CriticRate;
 
         private string newString(string value, string property)
         { _OnPropertyChanged(property, value); return value; }
@@ -56,41 +59,16 @@ namespace RightVisionBot.User
         private void _OnPropertyChanged(string property, string value)
         { OnPropertyChanged(property); UpdateDatabase(property, value); }
 
-        private void UpdateDatabase(string property, string value)
-        {
-            sql database = Program.database; 
-            database.Read($"UPDATE `RV_Critics` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
-        }
+        private void UpdateDatabase(string property, string value) => Program.database.Read($"UPDATE `RV_Critics` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
 
         public static RvCritic Get(long userId)
         {
             foreach (RvCritic critic in CriticRoot.newCritics)
-            {
                 if (critic.UserId == userId)
                     return critic;
-            }
+
             return null;
         }
-    }
-
-    class PreListener
-    {
-        public long ListenerId { get; set; }
-        public long ArtistId { get; set; }
-
-
-        private string NewString(string value, string property)
-        { _OnPropertyChanged(property, value); return value; }
-
-        private long NewLong(long value, string property)
-        { NewString(value.ToString(), property); return value; }
-
-        public event Action<string> OnPropertyChanged = delegate { };
-        private void _OnPropertyChanged(string property, string value)
-        { OnPropertyChanged(property); UpdateDatabase(property, value); }
-
-        private void UpdateDatabase(string property, string value) => 
-            Program.database.Read($"UPDATE `RV_PreListening` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {ListenerId}", "");
     }
 
     class CriticRoot
@@ -199,14 +177,12 @@ namespace RightVisionBot.User
                 
             else
             {
-                PreListener preListener = new() 
-                { ArtistId = artistId.First(), ListenerId = userId };
-                RvCritic.Get(userId).PreListening = preListener;
+                RvCritic.Get(userId).PreListeningArtist = artistId.First();
                 var trackCard = RvMember.Get(artistId.First()).Track;
                 var trackName = RvMember.Get(artistId.First()).TrackStr;
-                database.Read($"INSERT INTO `RV_PreListening` (`listenerId`, `artistId`) VALUES ('{Get(userId).ListenerId}', '{Get(userId).ArtistId}');", "");
+                database.Read($"INSERT INTO `RV_PreListening` (`listenerId`, `artistId`) VALUES ('{userId}', '{RvCritic.Get(userId).PreListeningArtist}');", "");
                 trackCard.Status = "checked";
-                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackCard.Track), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
+                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackCard.Track), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Status}");
                 await botClient.SendPhotoAsync(callback.Message.Chat, new InputFileId(trackCard.Image), caption: "Обложка ремикса");
                 await botClient.SendTextMessageAsync(callback.Message.Chat, "Выбери действие", replyMarkup: actions);
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.Message.From.Username} начал предварительное прослушивание\n=====\nId:{callback.Message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
@@ -217,7 +193,7 @@ namespace RightVisionBot.User
         {
             var actions = Keyboard.actions;
             long userId = callback.From.Id;
-            RvMember.Get(Get(userId).ArtistId).Track.Status = "ok";
+            RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Track.Status = "ok";
 
             var artistId = from rvMember in MemberRoot.newMembers where(rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
             var trackName = RvMember.Get(artistId.First()).TrackStr;
@@ -230,23 +206,14 @@ namespace RightVisionBot.User
             }
             else
             {
-                Get(userId).ArtistId = artistId.First();
-                var artist = RvMember.Get(Get(userId).ArtistId).Track;
+                RvCritic.Get(userId).PreListeningArtist = artistId.First();
+                var artist = RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Track;
                 
                 artist.Status = "checked";
-                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(artist.Track), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
+                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(artist.Track), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Status}");
                 await botClient.SendPhotoAsync(callback.Message.Chat, new InputFileId(artist.Image), caption: "Обложка ремикса");
                 await botClient.SendTextMessageAsync(callback.Message.Chat, "Выбери действие", replyMarkup: actions);
             }
-        }
-
-        public static PreListener Get(long userId)
-        {
-            foreach (var preListener in CriticRoot.newCritics)
-                if (preListener.UserId == userId)
-                    return preListener.PreListening;
-
-            return null;
         }
     }
 }

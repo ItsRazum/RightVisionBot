@@ -15,39 +15,39 @@ namespace RightVisionBot.Back.Commands.Admin
         private static sql database = Program.database;
         public static async Task Participation(ITelegramBotClient botClient, Message message)
         {
-            string newMessage = message.Text.ToLower().Replace("аннулировать участие ", "");
-            if (RvMember.Get(long.Parse(newMessage)) == null)
+            long newMessage = long.Parse(message.Text.ToLower().Replace("аннулировать участие ", ""));
+            if (RvMember.Get(newMessage) == null)
                 await botClient.SendTextMessageAsync(message.Chat, "Пользователь не найден!");
             else
             {
                 database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{newMessage}';", "");
-                MemberRoot.newMembers.Remove(RvMember.Get(long.Parse(newMessage)));
+                MemberRoot.newMembers.Remove(RvMember.Get(newMessage));
 
-                RvUser.Get(long.Parse(newMessage)).AddPermissions(array: new [] { Permission.SendMemberForm });
+                RvUser.Get(newMessage).AddPermissions(array: new [] { Permission.SendMemberForm });
                 await botClient.SendTextMessageAsync(message.Chat, $"Участие пользователя Id:{newMessage} аннулировано");
-                await botClient.SendTextMessageAsync(long.Parse(newMessage),
+                await botClient.SendTextMessageAsync(newMessage,
                     string.Format(Language.GetPhrase("Member_Messages_FormCanceled",
-                        RvUser.Get(long.Parse(newMessage)).Lang), message.From.FirstName + " " + message.From.LastName));
+                        RvUser.Get(newMessage).Lang), message.From.FirstName + " " + message.From.LastName));
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} аннулировал участие Id:{newMessage}\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(message.From.Id).Lang}", disableNotification: true);
             }
         }
 
         public static async Task Critic(ITelegramBotClient botClient, Message message)
         {
-            string newMessage = message.Text.ToLower().ToLower().Replace("аннулировать судейство ", "");
+            long newMessage = long.Parse(message.Text.ToLower().Replace("аннулировать судейство ", ""));
 
-            if (RvCritic.Get(long.Parse(newMessage)) == null)
+            if (RvCritic.Get(newMessage) == null)
                 await botClient.SendTextMessageAsync(message.Chat, "Пользователь не найден!");
             else
             {
                 database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{newMessage}';", "");
-                CriticRoot.newCritics.Remove(RvCritic.Get(long.Parse(newMessage)));
-                RvUser.Get(long.Parse(newMessage)).AddPermissions(array: new[] { Permission.SendCriticForm });
+                CriticRoot.newCritics.Remove(RvCritic.Get(newMessage));
+                RvUser.Get(newMessage).AddPermissions(array: new[] { Permission.SendCriticForm });
 
                 await botClient.SendTextMessageAsync(message.Chat, $"Судейство пользователя Id:{newMessage} аннулировано");
-                await botClient.SendTextMessageAsync(long.Parse(newMessage),
+                await botClient.SendTextMessageAsync(newMessage,
                     string.Format(Language.GetPhrase("Critic_Messages_FormCanceled",
-                        RvUser.Get(long.Parse(newMessage)).Lang), message.From.FirstName + " " + message.From.LastName));
+                        RvUser.Get(newMessage).Lang), message.From.FirstName + " " + message.From.LastName));
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} аннулировал судейство Id:{newMessage}\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(message.From.Id).Lang}", disableNotification: true);
             }
         }

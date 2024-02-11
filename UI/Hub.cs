@@ -80,11 +80,8 @@ namespace RightVisionBot.UI
 
         public static void SubscribeSending(ITelegramBotClient botClient, CallbackQuery callback)
         {
-            long userId = callback.From.Id;
-            RvUser rvUser = RvUser.Get(userId);
-
-            var toDB = $"INSERT INTO `RV_Sending` (`id`) VALUES ('{userId}');";
-            database.Read(toDB, "");
+            var userId = callback.From.Id;
+            var rvUser = RvUser.Get(userId);
 
             rvUser.AddPermissions(array: new [] { Permission.Sending });
             botClient.EditMessageReplyMarkupAsync(callback.Message.Chat, callback.Message.MessageId, Keyboard.Hub(rvUser));
@@ -94,12 +91,9 @@ namespace RightVisionBot.UI
 
         public static void UnsubscribeSending(ITelegramBotClient botClient, CallbackQuery callback)
         {
-            long userId = callback.From.Id;
-            RvUser rvUser = RvUser.Get(userId);
+            var userId = callback.From.Id;
+            var rvUser = RvUser.Get(userId);
             
-            var delFromDB = $"DELETE FROM `RV_Sending` WHERE `id` = '{rvUser.UserId}';";
-            database.Read(delFromDB, "");
-
             rvUser.RemovePermission(Permission.Sending);
             botClient.EditMessageReplyMarkupAsync(callback.Message.Chat, callback.Message.MessageId, Keyboard.Hub(rvUser));
             botClient.AnswerCallbackQueryAsync(callback.Id, Language.GetPhrase("Keyboard_Choice_Sending_Unsubscribe_Success", rvUser.Lang));

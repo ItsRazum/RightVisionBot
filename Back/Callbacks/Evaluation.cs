@@ -19,70 +19,70 @@ namespace RightVisionBot.Back.Callbacks
         {
             var callback = update.CallbackQuery;
             long callbackUserId = callback.From.Id;
+            var message = callback.Message;
             var callbackQuery = callback.Data;
-
+            CriticVote vote = TrackEvaluation.Get(callbackUserId);
             switch (callbackQuery)
             {
                 case "r_lower":
-                    if (TrackEvaluation.Get(callbackUserId).General is 0 or 1)
+                    if (vote.General is 0 or 1)
                         await botClient.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Поставить оценку меньше 1 нельзя!", showAlert: true);
                     else
                     {
-                        TrackEvaluation.Get(callbackUserId).General--;
-                        await botClient.EditMessageTextAsync(chatId: callback.Message.Chat, messageId: update.CallbackQuery.Message.MessageId, text: callback.Message.Text, replyMarkup: TrackEvaluation.RatingSystem(callbackUserId));
+                        vote.General--;
+                        await botClient.EditMessageTextAsync(message.Chat, message.MessageId, message.Text, replyMarkup: TrackEvaluation.RatingSystem(callbackUserId));
                     }
                     break;
                 case "r_higher":
-                    if (TrackEvaluation.Get(callbackUserId).General == 10)
+                    if (vote.General == 10)
                         await botClient.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Поставить оценку больше 10 нельзя!", showAlert: true);
                     else
                     {
-                        TrackEvaluation.Get(callbackUserId).General++;
-                        await botClient.EditMessageTextAsync(chatId: callback.Message.Chat, messageId: update.CallbackQuery.Message.MessageId, text: callback.Message.Text, replyMarkup: TrackEvaluation.RatingSystem(callbackUserId));
+                        vote.General++;
+                        await botClient.EditMessageTextAsync(message.Chat, message.MessageId, message.Text, replyMarkup: TrackEvaluation.RatingSystem(callbackUserId));
                     }
                     break;
                 case "r_enter":
-                    {
-                        string property = "";
-                        var voter = TrackEvaluation.Get(callbackUserId);
+                    { 
+                        var property = "";
 
-                        if (voter.Rate1 == 0)
+                        if (vote.Rate1 == 0)
                         {
                             property = "Rate1"; 
-                            voter.Rate1 = voter.General;
+                            vote.Rate1 = vote.General;
                         }
-                        else if (voter.Rate2 == 0)
+                        else if (vote.Rate2 == 0)
                         {
                             property = "Rate2"; 
-                            voter.Rate2 = voter.General;
+                            vote.Rate2 = vote.General;
                         }
-                        else if (voter.Rate3 == 0)
+                        else if (vote.Rate3 == 0)
                         {
                             property = "Rate3"; 
-                            voter.Rate3 = voter.General;
+                            vote.Rate3 = vote.General;
                         }
-                        else if (voter.Rate4 == 0)
+                        else if (vote.Rate4 == 0)
                         {
                             property = "Rate4"; 
-                            voter.Rate4 = voter.General;
+                            vote.Rate4 = vote.General;
                         }
 
                         await botClient.EditMessageTextAsync(
-                            chatId: callback.Message.Chat,
+                            chatId: message.Chat,
                             messageId: update.CallbackQuery.Message.MessageId,
-                            text: TrackEvaluation.RatesNot0(callbackUserId) ? $"Твоя оценка инструментала: {voter.Rate1}\nТвоя оценка гачивокала: {voter.Rate2}\nТвоя оценка технического исполнения: {voter.Rate3}\nТвоя оценка творческого исполнения: {voter.Rate4}" : TrackEvaluation.EnterVote(callbackUserId, property),
+                            text: TrackEvaluation.RatesNot0(callbackUserId) ? $"Твоя оценка инструментала: {vote.Rate1}\nТвоя оценка гачивокала: {vote.Rate2}\nТвоя оценка технического исполнения: {vote.Rate3}\nТвоя оценка творческого исполнения: {vote.Rate4}" : TrackEvaluation.EnterRate(callbackUserId, property),
                             replyMarkup: TrackEvaluation.RatesNot0(callbackUserId) ? Keyboard.finalActions : TrackEvaluation.RatingSystem(callbackUserId));
                     }
                     break;
                 case "r_back":
                     await botClient.EditMessageTextAsync(
-                        chatId: callback.Message.Chat,
+                        chatId: message.Chat,
                         messageId: update.CallbackQuery.Message.MessageId,
-                        text: TrackEvaluation.RollBackVote(callbackUserId),
+                        text: TrackEvaluation.RollBackRate(callbackUserId, vote),
                         replyMarkup: TrackEvaluation.RatesNot0(callbackUserId) ? Keyboard.finalActions : TrackEvaluation.RatingSystem(callbackUserId));
                     break;
                 case "r_count":
-                    await botClient.AnswerCallbackQueryAsync(update.CallbackQuery.Id, "Если ты хочешь вручную вписать оценку - напиши цифру в чат от 1 до 10 самостоятельно!", showAlert: true);
+                    await botClient.AnswerCallbackQueryAsync(callback.Id, "Если ты хочешь вручную вписать оценку - напиши цифру в чат от 1 до 10 самостоятельно!", showAlert: true);
                     break;
                 case "r_change1":
                 case "r_change2":
@@ -92,19 +92,18 @@ namespace RightVisionBot.Back.Callbacks
                     break;
                 case "r_send":
                     {
-                        var voter = TrackEvaluation.Get(callbackUserId);
-                        double finalRate = (voter.Rate1 + voter.Rate2 + voter.Rate3 + voter.Rate4) / 4.0;
+                        double finalRate = (vote.Rate1 + vote.Rate2 + vote.Rate3 + vote.Rate4) / 4.0;
 
                         await botClient.EditMessageTextAsync(
-                            chatId: callback.Message.Chat,
+                            chatId: message.Chat,
                             messageId: update.CallbackQuery.Message.MessageId,
-                            text: update.CallbackQuery.Message.Text + $"\n\n{voter.Rate1}+{voter.Rate2}+{voter.Rate3}+{voter.Rate4}={voter.Rate1 + voter.Rate2 + voter.Rate3 + voter.Rate4} / 4\nИтоговая оценка: {finalRate}",
+                            text: update.CallbackQuery.Message.Text + $"\n\n{vote.Rate1}+{vote.Rate2}+{vote.Rate3}+{vote.Rate4}={vote.Rate1 + vote.Rate2 + vote.Rate3 + vote.Rate4} / 4\nИтоговая оценка: {finalRate}",
                             replyMarkup: Keyboard.NextTrack);
-                        database.Read($"UPDATE `RV_C{RvCritic.Get(callbackUserId).Status}` SET `{callbackUserId}` = {finalRate} WHERE `userId` = {TrackEvaluation.Get(callbackUserId).ArtistId};", "");
+                        database.Read($"UPDATE `RV_C{RvCritic.Get(callbackUserId).Status}` SET `{callbackUserId}` = {finalRate} WHERE `userId` = {vote.ArtistId};", "");
                     }
                     break;
                 case "r_nexttrack":
-                    await TrackEvaluation.NextTrack(botClient, callback, RvUser.Get(callbackUserId));
+                    await TrackEvaluation.NextTrack(botClient, callback, vote);
                     break;
                 case "r_exit":
 

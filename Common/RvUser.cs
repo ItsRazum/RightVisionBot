@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.Metrics;
 using System.Text;
-using RightVisionBot.Back;
 using System.Timers;
 using Telegram.Bot;
 using Telegram.Bot.Types;

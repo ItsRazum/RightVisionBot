@@ -10,11 +10,6 @@ using RightVisionBot.User;
 //система восстановления данных после перезагрузки бота, а также синхронизация с базой данных
 namespace RightVisionBot.Back
 {
-    class Data
-    {
-        public static volatile List<long> Subscribers = new();
-    }
-
     class DataRestorer
     {
         static sql database = Program.database;
@@ -23,7 +18,7 @@ namespace RightVisionBot.Back
         {
             Console.WriteLine("Восстановление данных...");
             {
-                string[] columns = new[] { "userId", "lang", "status", "rvLocation", "role", "category" };
+                string[] columns = { "userId", "lang", "status", "rvLocation", "role", "category" };
                 var usersQuery = "SELECT * FROM `RV_Users`";
                 List<Dictionary<string, object>> uRead = database.ExtRead(usersQuery, columns);
                 int i = 0;
@@ -145,7 +140,7 @@ namespace RightVisionBot.Back
 
             Console.WriteLine("Восстановление наград");
             {
-                var rewards = database.ExtRead("SELECT `userId`, `rewards` FROM `Rv_Users`;",
+                var rewards = database.ExtRead("SELECT `userId`, `rewards` FROM `RV_Users`;",
                     new[] { "userId", "rewards" });
                 foreach (var user in rewards)
                 {
@@ -159,7 +154,7 @@ namespace RightVisionBot.Back
 
             Console.WriteLine("Восстановление наказаний");
             {
-                var punishments = database.ExtRead("SELECT `userId`, `punishments` FROM `Rv_Users` WHERE `userId` = '6547941574';",
+                var punishments = database.ExtRead("SELECT `userId`, `punishments` FROM `RV_Users`;",
                     new[] { "userId", "punishments" });
                 foreach (var user in punishments)
                 {
@@ -192,7 +187,7 @@ namespace RightVisionBot.Back
 
             Console.WriteLine("Восстановление данных судей...");
             {
-                string[] columns = new[] { "name", "telegram", "userId", "link", "rate", "about", "whyyou", "curator", "status" };
+                string[] columns = { "name", "telegram", "userId", "link", "rate", "about", "whyyou", "curator", "status", "prelisteningartist" };
                 var usersQuery = "SELECT * FROM `RV_Critics`";
                 var uRead = database.ExtRead(usersQuery, columns);
                 int i = 0;
@@ -202,13 +197,14 @@ namespace RightVisionBot.Back
                     {
                         UserId = long.Parse(userDb[columns[2]].ToString()),
                         Curator = long.Parse(userDb[columns[7]].ToString()),
+                        PreListeningArtist = long.Parse(userDb[columns[9]].ToString()),
                         Name = userDb[columns[0]].ToString(),
                         Telegram = userDb[columns[1]].ToString(),
                         Link = userDb[columns[3]].ToString(),
                         Rate = userDb[columns[4]].ToString(),
                         About = userDb[columns[5]].ToString(),
                         WhyYou = userDb[columns[6]].ToString(),
-                        Status = userDb[columns[8]].ToString()
+                        Status = userDb[columns[8]].ToString(),
                     };
                     i++;
                     CriticRoot.newCritics.Add(critic);
@@ -218,8 +214,7 @@ namespace RightVisionBot.Back
             }
             Console.WriteLine("Восстановление данных участников...");
             {
-                string[] columns = new[]
-                { "name", "telegram", "userId", "country", "city", "link", "rate", "track", "curator", "status" };
+                string[] columns = { "name", "telegram", "userId", "country", "city", "link", "rate", "track", "curator", "status" };
                 var usersQuery = "SELECT * FROM `RV_Members`";
                 var uRead = database.ExtRead(usersQuery, columns);
                 int i = 0;
@@ -260,31 +255,21 @@ namespace RightVisionBot.Back
                             "userId");
 
                     if (fromMembers.FirstOrDefault() != null && fromCritics.FirstOrDefault() == null)
-                        database.Read($"UPDATE `RV_Users` SET `status` = 'Member' WHERE `userId` = {id};", "");
+                        RvUser.Get(id).Status = Status.Member;
                     else if (fromMembers.FirstOrDefault() == null && fromCritics.FirstOrDefault() != null)
-                        database.Read($"UPDATE `RV_Users` SET `status` = 'Critic' WHERE `userId` = {id};", "");
+                        RvUser.Get(id).Status = Status.Critic;
                     else if (fromMembers.FirstOrDefault() != null && fromCritics.FirstOrDefault() != null)
-                        database.Read($"UPDATE `RV_Users` SET `status` = 'CriticAndMember' WHERE `userId` = {id};",
-                            "");
+                        RvUser.Get(id).Status = Status.CriticAndMember;
                     else
-                        database.Read($"UPDATE `RV_Users` SET `status` = 'User' WHERE `userId` = {id};", "");
+                        RvUser.Get(id).Status = Status.User;
                 }
 
-                Console.WriteLine("Актуализация завершена");
-            }
-            Console.WriteLine("Восстановление списка подписчиков...\n");
-            {
-                var idList = database.Read("SELECT `id` FROM `RV_Sending`;", "id");
-                foreach (var ids in idList)
-                {
-                    long id = long.Parse(ids);
-                    Data.Subscribers.Add(id);
-                }
+                Console.WriteLine("Актуализация завершена\n");
             }
             Console.WriteLine("Завершено. Восстановление карточек треков участников...");
             {
-                string[] columns = new[] { "userId", "track", "image", "text" };
-                var cardList = database.ExtRead("SELECT * FROM `RV_Tracks` where `userId` = 901152811", columns);
+                string[] columns = { "userId", "track", "image", "text" };
+                var cardList = database.ExtRead("SELECT * FROM `RV_Tracks`", columns);
                 int i = 0;
                 foreach (var card in cardList)
                 {
@@ -307,24 +292,6 @@ namespace RightVisionBot.Back
 
                 Console.WriteLine($"Восстановлено {i} карточек\n");
             }
-            Console.WriteLine("Восстановление данных предварительного прослушивания");
-            {
-                string[] columns = new[] { "listenerId", "artistId" };
-                var listeners = database.ExtRead("SELECT * FROM `RV_PreListening`", columns);
-                int i = 0;
-                foreach (var listener in listeners)
-                {
-                    var lsnr = new PreListener()
-                    {
-                        ListenerId = long.Parse(listener[columns[0]].ToString()),
-                        ArtistId = long.Parse(listener[columns[1]].ToString())
-                    };
-                    RvCritic.Get(lsnr.ListenerId).PreListening = lsnr;
-                    i++;
-                }
-
-                Console.WriteLine($"Восстановлено {i} прослушиваний\n");
-            }
 
             Console.WriteLine("Восстановление оценок судей");
             {
@@ -342,7 +309,7 @@ namespace RightVisionBot.Back
                         Rate3 = int.Parse(rate["rate3"].ToString()),
                         Rate4 = int.Parse(rate["rate4"].ToString())
                     };
-                    TrackEvaluation.Rates.Add(_rate);
+                    RvCritic.Get(_rate.UserId).CriticRate = _rate;
                     i++;
                 }
 
@@ -351,7 +318,7 @@ namespace RightVisionBot.Back
 
             Console.WriteLine("Актуализация данных в таблицах рейтинга треков");
             {
-                string[] categories = new[] { "bronze", "steel", "gold", "brilliant" };
+                string[] categories = { "bronze", "steel", "gold", "brilliant" };
 
                 foreach (var category in categories)
                 {
@@ -367,22 +334,15 @@ namespace RightVisionBot.Back
                         string categoryName = user["category"].ToString();
 
                         bool userExists =
-                            database.Read(
-                                $"SELECT `userId` FROM RV_C{categoryName.ToLower()} WHERE userId = '{userId}';",
-                                "userId").FirstOrDefault() != null;
+                            database.Read($"SELECT `userId` FROM RV_C{categoryName.ToLower()} WHERE userId = '{userId}';", "userId").FirstOrDefault() != null;
 
                         if (!userExists)
-                            database.Read(
-                                $"INSERT INTO RV_C{categoryName.ToLower()} (userId, track, status) VALUES ('{userId}', '{track}', '{userStatus}');",
-                                "");
+                            database.Read($"INSERT INTO RV_C{categoryName.ToLower()} (userId, track, status) VALUES ('{userId}', '{track}', '{userStatus}');", "");
                         else
                         {
-                            database.Read(
-                                $"UPDATE RV_C{categoryName.ToLower()} SET track = '{track}', status = '{userStatus}' WHERE userId = '{userId}';",
-                                "");
+                            database.Read($"UPDATE RV_C{categoryName.ToLower()} SET track = '{track}', status = '{userStatus}' WHERE userId = '{userId}';", "");
                             if (userStatus != "ok")
-                                database.Read(
-                                    $"DELETE FROM `RV_C{categoryName.ToLower()}` WHERE `userId` = {userId};", "");
+                                database.Read($"DELETE FROM `RV_C{categoryName.ToLower()}` WHERE `userId` = {userId};", "");
                         }
                     }
                 }

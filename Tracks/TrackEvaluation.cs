@@ -95,7 +95,6 @@ namespace RightVisionBot.Tracks
             return Get(userId).Rate1 == 0 ? withoutBack : withBack;
         }
 
-        public static volatile List<CriticVote> Rates = new();
         public static sql database = Program.database;
 
         public static async Task Start(ITelegramBotClient botClient, Update update, RvUser rvUser)
@@ -146,9 +145,9 @@ namespace RightVisionBot.Tracks
                         ArtistId = artistId.FirstOrDefault(),
                         General = 0,
                     };
-                    Rates.Add(vote);
+                    RvCritic.Get(userId).CriticRate = vote;
                     database.Read($"INSERT INTO `RV_Rates` (`userId`, `artistId`) VALUES ({userId}, {artistId.FirstOrDefault()});", "");
-                    await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackCard.Track), caption: $"Название: {trackName.FirstOrDefault()}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
+                    await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackCard.Track), caption: $"Название: {trackName.FirstOrDefault()}\nКатегория: {RvMember.Get(vote.ArtistId).Status}");
                     await botClient.SendTextMessageAsync(callback.Message.Chat, "Выдай оценку инструменталу", replyMarkup: Keyboard.Evaluation(userId));
                     await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} начал оценивание ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
                 }
@@ -157,7 +156,7 @@ namespace RightVisionBot.Tracks
                 Permissions.NoPermission(callback.Message.Chat);
         }
 
-        public static string EnterVote(long userId, string property)
+        public static string EnterRate(long userId, string property)
         {
             CriticVote voter = Get(userId);
             voter.General = 0;
@@ -171,72 +170,68 @@ namespace RightVisionBot.Tracks
             }
         }
 
-        public static string ChangeVote(long userId)
+        public static string ChangeStringRate(long userId, CriticVote vote)
         {
-            CriticVote voter = Get(userId);
-            if      (voter.Rate1 == 0) { voter.Rate1 = voter.General; voter.General = 0; return $"Выдай оценку инструменталу"; }
-            else if (voter.Rate2 == 0) { voter.Rate2 = voter.General; voter.General = 0; return $"Твоя оценка инструментала: {voter.Rate1}\n\nВыдай оценку гачивокалу"; }
-            else if (voter.Rate3 == 0) { voter.Rate3 = voter.General; voter.General = 0; return $"Твоя оценка инструментала: {voter.Rate1}\nТвоя оценка гачивокала: {voter.Rate2}\n\nВыдай оценку техническому исполнению"; }
-            else    {voter.Rate4 = voter.General; voter.General = 0; return $"Твоя оценка инструментала: {voter.Rate1}\nТвоя оценка гачивокала: {voter.Rate2}\nТвоя оценка технического исполнения: {voter.Rate3}\n\nВыдай оценку творческому исполнению"; }
+            if      (vote.Rate1 == 0) { vote.Rate1 = vote.General; vote.General = 0; return $"Выдай оценку инструменталу"; }
+            else if (vote.Rate2 == 0) { vote.Rate2 = vote.General; vote.General = 0; return $"Твоя оценка инструментала: {vote.Rate1}\n\nВыдай оценку гачивокалу"; }
+            else if (vote.Rate3 == 0) { vote.Rate3 = vote.General; vote.General = 0; return $"Твоя оценка инструментала: {vote.Rate1}\nТвоя оценка гачивокала: {vote.Rate2}\n\nВыдай оценку техническому исполнению"; }
+            else                      { vote.Rate4 = vote.General; vote.General = 0; return $"Твоя оценка инструментала: {vote.Rate1}\nТвоя оценка гачивокала: {vote.Rate2}\nТвоя оценка технического исполнения: {vote.Rate3}\n\nВыдай оценку творческому исполнению"; }
         }
 
-        public static string RollBackVote(long userId)
+        public static string RollBackRate(long userId, CriticVote vote)
         {
-            CriticVote voter = Get(userId);
-            if      (voter.Rate4 != 0) { voter.Rate4 = 0; voter.General = 0; return $"Твоя оценка инструментала: {voter.Rate1}\nТвоя оценка гачивокала: {voter.Rate2}\nТвоя оценка технического исполнения: {voter.Rate3}\n\nВыдай оценку творческому исполнению"; }
-            else if (voter.Rate3 != 0) { voter.Rate3 = 0; voter.General = 0; return $"Твоя оценка инструментала: {voter.Rate1}\nТвоя оценка гачивокала: {voter.Rate2}\n\nВыдай оценку техническому исполнению"; }
-            else if (voter.Rate2 != 0) { voter.Rate2 = 0; voter.General = 0; return $"Твоя оценка инструментала: {voter.Rate1}\n\nВыдай оценку гачивокалу"; }
-            else    {voter.Rate1 = 0; voter.General = 0; return $"Выдай оценку инструменталу"; }
+            if      (vote.Rate4 != 0) { vote.Rate4 = 0; vote.General = 0; return $"Твоя оценка инструментала: {vote.Rate1}\nТвоя оценка гачивокала: {vote.Rate2}\nТвоя оценка технического исполнения: {vote.Rate3}\n\nВыдай оценку творческому исполнению"; }
+            else if (vote.Rate3 != 0) { vote.Rate3 = 0; vote.General = 0; return $"Твоя оценка инструментала: {vote.Rate1}\nТвоя оценка гачивокала: {vote.Rate2}\n\nВыдай оценку техническому исполнению"; }
+            else if (vote.Rate2 != 0) { vote.Rate2 = 0; vote.General = 0; return $"Твоя оценка инструментала: {vote.Rate1}\n\nВыдай оценку гачивокалу"; }
+            else                      { vote.Rate1 = 0; vote.General = 0; return $"Выдай оценку инструменталу"; }
         }
 
-        public static bool RatesNot0(long userId)
-        { return Get(userId).Rate1 != 0 && Get(userId).Rate2 != 0 && Get(userId).Rate3 != 0 && Get(userId).Rate4 != 0; }
-
+        public static bool RatesNot0(long userId) => Get(userId).Rate1 != 0 && Get(userId).Rate2 != 0 && Get(userId).Rate3 != 0 && Get(userId).Rate4 != 0;
 
         public static void ChangeRate(ITelegramBotClient botClient, Update update)
         {
             var callbackQuery = update.CallbackQuery.Data;
             var callback = update.CallbackQuery;
             var userId = callback.From.Id;
-            CriticVote voter = Get(userId);
+            CriticVote vote = Get(userId);
             switch (callbackQuery)
             {
                 case "change1":
-                    voter.Rate1 = 0;
+                    vote.Rate1 = 0;
                     botClient.EditMessageTextAsync(
                         chatId: callback.Message.Chat,
                         messageId: update.CallbackQuery.Message.MessageId,
-                        text: TrackEvaluation.ChangeVote(callback.From.Id),
-                        replyMarkup: TrackEvaluation.RatingSystem(callback.From.Id));
+                        text: ChangeStringRate(callback.From.Id, vote),
+                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
                 case "change2":
-                    voter.Rate2 = 0;
+                    vote.Rate2 = 0;
                     botClient.EditMessageTextAsync(
                         chatId: callback.Message.Chat,
                         messageId: update.CallbackQuery.Message.MessageId,
-                        text: TrackEvaluation.ChangeVote(callback.From.Id),
-                        replyMarkup: TrackEvaluation.RatingSystem(callback.From.Id));
+                        text: ChangeStringRate(callback.From.Id, vote),
+                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
                 case "change3":
-                    voter.Rate3 = 0;
+                    vote.Rate3 = 0;
                     botClient.EditMessageTextAsync(
                         chatId: callback.Message.Chat,
                         messageId: update.CallbackQuery.Message.MessageId,
-                        text: TrackEvaluation.ChangeVote(callback.From.Id),
-                        replyMarkup: TrackEvaluation.RatingSystem(callback.From.Id));
+                        text: ChangeStringRate(callback.From.Id, vote),
+                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
                 case "change4":
-                    voter.Rate4 = 0;
+                    vote.Rate4 = 0;
                     botClient.EditMessageTextAsync(
                         chatId: callback.Message.Chat,
                         messageId: update.CallbackQuery.Message.MessageId,
-                        text: TrackEvaluation.ChangeVote(callback.From.Id),
-                        replyMarkup: TrackEvaluation.RatingSystem(callback.From.Id));
+                        text: ChangeStringRate(callback.From.Id, vote),
+                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
             }
         }
 
-        public static async Task NextTrack(ITelegramBotClient botClient, CallbackQuery callback, RvUser rvUser)
+        public static async Task NextTrack(ITelegramBotClient botClient, CallbackQuery callback, CriticVote vote)
         {
             ReplyKeyboardMarkup back = new(new[]
                     { new[] { new KeyboardButton("Назад") } })
@@ -252,10 +247,10 @@ namespace RightVisionBot.Tracks
             {
                 var trackName = RvMember.Get(long.Parse(artistId)).TrackStr;
                 var trackCard = RvMember.Get(long.Parse(artistId)).Track;
-                Get(userId).General = 0;  Get(userId).Rate1 = 0; 
-                Get(userId).Rate2 = 0;    Get(userId).Rate3 = 0; 
-                Get(userId).Rate4 = 0;    Get(userId).ArtistId = long.Parse(artistId);
-                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackName), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(Get(userId).ArtistId).Status}");
+                vote.General = 0;  vote.Rate1 = 0; 
+                vote.Rate2 = 0;    vote.Rate3 = 0; 
+                vote.Rate4 = 0;    vote.ArtistId = long.Parse(artistId);
+                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackName), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(vote.ArtistId).Status}");
                 await botClient.SendTextMessageAsync(callback.Message.Chat, "Выдай оценку инструменталу", replyMarkup: Keyboard.Evaluation(userId));
                 database.Read($"UPDATE `RV_Rates` SET `artistId` = {artistId.FirstOrDefault()} WHERE `userId` = {userId}", "");
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} начал оценивание ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
@@ -264,9 +259,9 @@ namespace RightVisionBot.Tracks
 
         public static CriticVote Get(long userId)
         {
-            foreach (var vote in Rates)
+            foreach (var vote in CriticRoot.newCritics)
                 if (vote.UserId == userId)
-                    return vote;
+                    return vote.CriticRate;
 
             return null;
         }

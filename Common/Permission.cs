@@ -1,11 +1,10 @@
-﻿using RightVisionBot.Back;
-using System.Text;
+﻿using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace RightVisionBot.Common;
 
-   class PermissionLayouts
+class PermissionLayouts
     {
         public static HashSet<Permission> User = new()
         {

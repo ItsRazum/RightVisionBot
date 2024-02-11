@@ -7,6 +7,7 @@ using RightVisionBot.Common;
 using RightVisionBot.Tracks;
 using RightVisionBot.UI;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace RightVisionBot.Back
@@ -25,12 +26,12 @@ namespace RightVisionBot.Back
         });
         //=======
 
-        public static InlineKeyboardMarkup ProfileOptions(RvUser rvUser)
+        public static InlineKeyboardMarkup ProfileOptions(RvUser rvUser, Message message)
         {
             InlineKeyboardButton[] top = new[]
             {
-                InlineKeyboardButton.WithCallbackData("🗒"+"Список прав", "menu_permissions"),
-                InlineKeyboardButton.WithCallbackData("👨‍⚖️"+"История наказаний", "menu_history")
+                InlineKeyboardButton.WithCallbackData("🗒"+Language.GetPhrase("Keyboard_Choice_PermissionsList", rvUser.Lang), $"menu_permissions-{rvUser.UserId}"),
+                InlineKeyboardButton.WithCallbackData("👨‍⚖️"+Language.GetPhrase("Keyboard_Choice_PunishmentsHistory", rvUser.Lang), $"menu_history-{rvUser.UserId}")
             };
 
             InlineKeyboardButton[] back = new[] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_back") };
@@ -66,8 +67,7 @@ namespace RightVisionBot.Back
                 custom = common;
             else if (rvUser.Has(Permission.TrackCard) && rvUser.Has(Permission.CriticMenu))
                 custom = criticAndMember;
-
-            return custom;
+            return message.Chat.Type != ChatType.Private ? top : custom;
         }
 
         //=======
@@ -113,19 +113,24 @@ namespace RightVisionBot.Back
         public static InlineKeyboardMarkup Minimize(RvUser rvUser) => new InlineKeyboardMarkup(new[]
         { new [] 
             { 
-                InlineKeyboardButton.WithCallbackData("↑ " + "Свернуть", "permissions_minimize"),
-                InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_profile")
+                InlineKeyboardButton.WithCallbackData("↑ " + "Свернуть", $"permissions_minimize-{rvUser.UserId}"),
+                InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), $"permissions_back-{rvUser.UserId}")
             }
         });
 
         public static InlineKeyboardMarkup Maximize(RvUser rvUser) => new InlineKeyboardMarkup(new[]
         { new []
             {
-                InlineKeyboardButton.WithCallbackData("↓ " + "Развернуть", "permissions_maximize"),
-                InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_profile")
+                InlineKeyboardButton.WithCallbackData("↓ " + "Развернуть", $"permissions_maximize-{rvUser.UserId}"),
+                InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), $"permissions_back-{rvUser.UserId}")
             }
         });
-        
+
+        public static InlineKeyboardButton[] PermissionsBack(RvUser rvUser) => new[]
+        {
+            InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang),
+                $"permissions_back-{rvUser.UserId}")
+        };
         //=======
         public static ReplyKeyboardMarkup MainMenu(string lang) => new(new[] 
             { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", lang)) } })

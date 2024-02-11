@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using RightVisionBot.UI;
@@ -21,33 +22,61 @@ namespace RightVisionBot.Back.Callbacks
 
             switch (callbackQuery)
             {
-                case "menu_permissions":
-                case "permissions_minimize":
-                    await UserProfile.PermissionsList(botClient, update, rvUser, "minimize");
-                    break;
-                case "permissions_maximize":
-                    await UserProfile.PermissionsList(botClient, update, rvUser, "maximize");
-                    break;
-                case "menu_history":
-                    await UserProfile.PunishmentsList(botClient, update, rvUser);
-                    break;
                 case "menu_forms":
                     if (!rvUser.Has(Permission.SendCriticForm) && !rvUser.Has(Permission.SendCriticForm))
-                        await botClient.AnswerCallbackQueryAsync(callback.Id, "К сожалению, тебе больше нельзя подавать заявки!");
+                        await botClient.AnswerCallbackQueryAsync(callback.Id, "Messages_FormsBlocked");
                     else
-                        await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, "До участия в RightVision всего два шага! Подай заявку на участие или на судейство прямо сейчас!", replyMarkup: Keyboard.Forms(rvUser, rvUser.RvLocation));
+                        await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
+                            Language.GetPhrase("Messages_SendFormRightNow", rvUser.Lang),
+                            replyMarkup: Keyboard.Forms(rvUser, rvUser.RvLocation));
                     break;
                 case "menu_cancelCritic":
                     Program.database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{callbackUserId}';", "");
                     CriticRoot.newCritics.Remove(RvCritic.Get(callbackUserId));
-                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} отменил заполнение заявки на судейство\n=====\nId:{callbackUserId}\nЯзык: {RvUser.Get(callbackUserId).Lang}\nЛокация: {RvUser.Get(callbackUserId).RvLocation}", disableNotification: true);
+                    await botClient.SendTextMessageAsync(-4074101060,
+                        $"Пользователь @{callback.From.Username} отменил заполнение заявки на судейство\n=====\nId:{callbackUserId}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}",
+                        disableNotification: true);
                     goto case "menu_forms";
                 case "menu_cancelMember":
                     Program.database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{callbackUserId}';", "");
                     MemberRoot.newMembers.Remove(RvMember.Get(callbackUserId));
-                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} отменил заполнение заявки на участие\n=====\nId:{callbackUserId}\nЯзык: {RvUser.Get(callbackUserId).Lang}\nЛокация: {RvUser.Get(callbackUserId).RvLocation}", disableNotification: true);
+                    await botClient.SendTextMessageAsync(-4074101060,
+                        $"Пользователь @{callback.From.Username} отменил заполнение заявки на участие\n=====\nId:{callbackUserId}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}",
+                        disableNotification: true);
                     goto case "menu_forms";
             }
+
+            if (callbackQuery.StartsWith("menu_permissions-"))
+                await UserProfile.PermissionsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("menu_permissions-", ""))), "minimize");
+
+            else if (callbackQuery.StartsWith("permissions_back-"))
+            {
+                Telegram.Bot.Types.User from = new()
+                {
+                    Id = long.Parse(callbackQuery.Replace("permissions_back-", ""))
+                };
+                Message plugMessage = new()
+                {
+                    Chat = callback.Message.Chat,
+                    From = from,
+                    ReplyToMessage = new Message()
+                    {
+                        Chat = callback.Message.Chat,
+                        From = from
+                    }
+                };
+                await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
+                    UserProfile.ProfileFormat(plugMessage, RvUser.Get(plugMessage.From.Id)), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(plugMessage.From.Id), plugMessage));
+            }
+
+            else if (callbackQuery.StartsWith("permissions_minimize-"))
+                await UserProfile.PermissionsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_minimize-", ""))), "minimize");
+
+            else if (callbackQuery.StartsWith("permissions_maximize-"))
+                await UserProfile.PermissionsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_maximize-", ""))), "maximize");
+
+            else if (callbackQuery.StartsWith("menu_history-"))
+                await UserProfile.PunishmentsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("menu_history-", ""))));
         }
     }
 }

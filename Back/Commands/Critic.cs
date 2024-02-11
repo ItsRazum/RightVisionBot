@@ -22,7 +22,7 @@ namespace RightVisionBot.Back.Commands
             string? msgText = message.Text;
             long userId = message.From.Id;
 
-            switch (msgText.ToLower())
+            switch (msgText)
             {
                 case "1":
                 case "2":
@@ -36,8 +36,8 @@ namespace RightVisionBot.Back.Commands
                 case "10":
                     if (message.ReplyToMessage != null)
                     {
-                        int Rate = int.Parse(message.Text);
-                        TrackEvaluation.Get(userId).General = Rate;
+                        int rate = int.Parse(msgText);
+                        TrackEvaluation.Get(userId).General = rate;
                         await botClient.EditMessageReplyMarkupAsync(message.Chat, message.ReplyToMessage.MessageId, TrackEvaluation.RatingSystem(message.From.Id));
                     }
                     break;

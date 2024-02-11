@@ -19,7 +19,8 @@ namespace RightVisionBot.Back.Commands.Admin
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} начал новостную рассылку\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(message.From.Id).Lang}", disableNotification: true);
                 string newMessage = message.Text.Replace("/news ", "");
                 int i = 0, b = 0;
-                foreach (var sub in Data.Subscribers)
+                var subs = from sub in Program.users where sub.Has(Permission.Sending) select sub.UserId;
+                foreach (var sub in subs)
                     try { await botClient.SendTextMessageAsync(sub, newMessage); }
                     catch { b++; }
 
