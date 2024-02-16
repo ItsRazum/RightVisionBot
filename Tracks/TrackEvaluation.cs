@@ -104,7 +104,7 @@ namespace RightVisionBot.Tracks
 
             if (rvUser.Has(Permission.Evaluation))
             {
-                Program.updateRvLocation(userId, RvLocation.Evaluation);
+                Program.UpdateRvLocation(userId, RvLocation.Evaluation);
                 InlineKeyboardMarkup actions = new(new[]
                     {
                         new[] { InlineKeyboardButton.WithCallbackData("Начать оценивание", "c_startlistening"),  },
@@ -259,7 +259,7 @@ namespace RightVisionBot.Tracks
 
         public static CriticVote Get(long userId)
         {
-            foreach (var vote in CriticRoot.newCritics)
+            foreach (var vote in Data.RvCritics)
                 if (vote.UserId == userId)
                     return vote.CriticRate;
 

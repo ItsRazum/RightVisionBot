@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot;
+using RightVisionBot.User;
 
 namespace RightVisionBot.Back.Commands.Admin
 {
@@ -58,6 +59,23 @@ namespace RightVisionBot.Back.Commands.Admin
                         if (rvUser.Has(deletedPermission))
                             rvUser.RemovePermission(deletedPermission);
                     }
+
+                    if (deletedPermission == Permission.MemberChat)
+                    {
+                        await botClient.BanChatMemberAsync(Program.MemberGroupId, rvUser.UserId, DateTime.Now.AddMinutes(1));
+                        await botClient.SendTextMessageAsync(rvUser.UserId,
+                            string.Format(Language.GetPhrase("Punishments_PermissionTakenAway", rvUser.Lang),
+                                Language.GetPhrase("Profile_Punishment_FromMembers", rvUser.Lang)));
+                    }
+                    else if (deletedPermission == Permission.CriticChat)
+                    {
+                        await botClient.BanChatMemberAsync(Program.CriticGroupId, rvUser.UserId, DateTime.Now.AddMinutes(1));
+                        await botClient.SendTextMessageAsync(rvUser.UserId,
+                            string.Format(Language.GetPhrase("Punishments_PermissionTakenAway", rvUser.Lang),
+                                Language.GetPhrase("Profile_Punishment_FromCritics", rvUser.Lang)));
+                    }
+
+
                     await botClient.SendTextMessageAsync(message.Chat, $"С пользователя успешно снято право Permission.{deletedPermission}!");
                 }
                 catch

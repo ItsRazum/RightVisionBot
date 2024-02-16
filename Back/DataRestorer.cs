@@ -10,6 +10,17 @@ using RightVisionBot.User;
 //система восстановления данных после перезагрузки бота, а также синхронизация с базой данных
 namespace RightVisionBot.Back
 {
+    class Data
+    {
+        public static volatile List<RvUser> RvUsers = new();
+        
+
+        public static volatile List<RvCritic> RvCritics = new();
+        public static volatile List<RvMember> RvMembers = new();
+
+
+    }
+
     class DataRestorer
     {
         static sql database = Program.database;
@@ -20,22 +31,22 @@ namespace RightVisionBot.Back
             {
                 string[] columns = { "userId", "lang", "status", "rvLocation", "role", "category" };
                 var usersQuery = "SELECT * FROM `RV_Users`";
-                List<Dictionary<string, object>> uRead = database.ExtRead(usersQuery, columns);
+                List<Dictionary<string, string>> uRead = database.ExtRead(usersQuery, columns);
                 int i = 0;
                 foreach (var userDb in uRead)
                 {
                     var user = new RvUser()
                     {
-                        UserId = long.Parse(userDb[columns[0]].ToString()),
-                        Lang = userDb[columns[1]].ToString(),
-                        Status = Enum.Parse<Status>(userDb[columns[2]].ToString()),
-                        RvLocation = Enum.Parse<RvLocation>(userDb[columns[3]].ToString()),
-                        Role = Enum.Parse<Role>(userDb[columns[4]].ToString()),
-                        Category = userDb[columns[5]].ToString(),
+                        UserId = long.Parse(userDb[columns[0]]),
+                        Lang = userDb[columns[1]],
+                        Status = Enum.Parse<Status>(userDb[columns[2]]),
+                        RvLocation = Enum.Parse<RvLocation>(userDb[columns[3]]),
+                        Role = Enum.Parse<Role>(userDb[columns[4]]),
+                        Category = userDb[columns[5]],
                         Cooldown = new System.Timers.Timer(1)
                     };
                     i++;
-                    Program.users.Add(user);
+                    Data.RvUsers.Add(user);
                 }
 
                 Console.WriteLine($"Данные пользователей восстановлены ({i})\n");
@@ -46,10 +57,10 @@ namespace RightVisionBot.Back
                     new[] { "userId", "permissions" });
                 foreach (var permission in permissions)
                 {
-                    long userId = long.Parse(permission["userId"].ToString());
+                    long userId = long.Parse(permission["userId"]);
                     RvUser rvUser = RvUser.Get(userId);
                     HashSet<Permission> perms = new HashSet<Permission>();
-                    if (permission["permissions"].ToString() == "None")
+                    if (permission["permissions"] == "None")
                     {
                         switch (rvUser.Status)
                         {
@@ -89,7 +100,7 @@ namespace RightVisionBot.Back
                     }
                     else
                     {
-                        string[] permissionStrings = permission["permissions"].ToString().Split(";");
+                        string[] permissionStrings = permission["permissions"].Split(";");
 
                         foreach (var _permission in permissionStrings)
                             if (_permission != "")
@@ -103,35 +114,32 @@ namespace RightVisionBot.Back
             }
             Console.WriteLine("Восстановление категорий");
             {
-                var categories = database.ExtRead("SELECT `userId`, `category` FROM `RV_Users`;",
-                    new[] { "userId", "category" });
+                var categories = database.ExtRead("SELECT `userId`, `category` FROM `RV_Users`;", new[] { "userId", "category" });
                 foreach (var category in categories)
                 {
-                    long userId = long.Parse(category["userId"].ToString());
+                    long userId = long.Parse(category["userId"]);
                     RvUser rvUser = RvUser.Get(userId);
-                    var fromMembers = database.Read($"SELECT `status` FROM `RV_Members` WHERE `userId` = '{userId}'",
-                        "status");
-                    var fromCritics = database.Read($"SELECT `status` FROM `RV_Critics` WHERE `userId` = '{userId}'",
-                        "status");
-                    switch (fromCritics.FirstOrDefault())
+                    var fromMembers = database.Read($"SELECT `status` FROM `RV_Members` WHERE `userId` = '{userId}'", "status").FirstOrDefault();
+                    var fromCritics = database.Read($"SELECT `status` FROM `RV_Critics` WHERE `userId` = '{userId}'", "status").FirstOrDefault();
+                    switch (fromCritics)
                     {
                         case "denied":
                         case "unfinished":
                         case null:
                             break;
                         default:
-                            rvUser.Category = fromCritics.FirstOrDefault();
+                            rvUser.Category = fromCritics;
                             break;
                     }
 
-                    switch (fromMembers.FirstOrDefault())
+                    switch (fromMembers)
                     {
                         case "denied":
                         case "unfinished":
                         case null:
                             break;
                         default:
-                            rvUser.Category = fromMembers.FirstOrDefault();
+                            rvUser.Category = fromMembers;
                             break;
                     }
                 }
@@ -140,27 +148,25 @@ namespace RightVisionBot.Back
 
             Console.WriteLine("Восстановление наград");
             {
-                var rewards = database.ExtRead("SELECT `userId`, `rewards` FROM `RV_Users`;",
-                    new[] { "userId", "rewards" });
+                var rewards = database.ExtRead("SELECT `userId`, `rewards` FROM `RV_Users`;", new[] { "userId", "rewards" });
                 foreach (var user in rewards)
                 {
-                    string[] rewardStrings = user["rewards"].ToString().Split(";");
+                    string[] rewardStrings = user["rewards"].Split(";");
                     foreach (var reward in rewardStrings)
                         if (reward != "" && reward != "None")
-                            RvUser.Get(long.Parse(user["userId"].ToString())).AddReward(reward);
+                            RvUser.Get(long.Parse(user["userId"])).AddReward(reward);
                 }
             }
             Console.WriteLine("Награды восстановлены\n");
 
             Console.WriteLine("Восстановление наказаний");
             {
-                var punishments = database.ExtRead("SELECT `userId`, `punishments` FROM `RV_Users`;",
-                    new[] { "userId", "punishments" });
+                var punishments = database.ExtRead("SELECT `userId`, `punishments` FROM `RV_Users`;", new[] { "userId", "punishments" });
                 foreach (var user in punishments)
                 {
-                    RvUser rvUser = RvUser.Get(long.Parse(user["userId"].ToString()));
+                    RvUser rvUser = RvUser.Get(long.Parse(user["userId"]));
 
-                    string punishmentsString = user["punishments"].ToString();
+                    string punishmentsString = user["punishments"];
                     List<RvPunishment> punishmentsList = new List<RvPunishment>();
                         string[] allPunishments = punishmentsString.Split(",");
 
@@ -195,19 +201,19 @@ namespace RightVisionBot.Back
                 {
                     var critic = new RvCritic
                     {
-                        UserId = long.Parse(userDb[columns[2]].ToString()),
-                        Curator = long.Parse(userDb[columns[7]].ToString()),
-                        PreListeningArtist = long.Parse(userDb[columns[9]].ToString()),
-                        Name = userDb[columns[0]].ToString(),
-                        Telegram = userDb[columns[1]].ToString(),
-                        Link = userDb[columns[3]].ToString(),
-                        Rate = userDb[columns[4]].ToString(),
-                        About = userDb[columns[5]].ToString(),
-                        WhyYou = userDb[columns[6]].ToString(),
-                        Status = userDb[columns[8]].ToString(),
+                        UserId = long.Parse(userDb[columns[2]]),
+                        Curator = long.Parse(userDb[columns[7]]),
+                        PreListeningArtist = long.Parse(userDb[columns[9]]),
+                        Name = userDb[columns[0]],
+                        Telegram = userDb[columns[1]],
+                        Link = userDb[columns[3]],
+                        Rate = userDb[columns[4]],
+                        About = userDb[columns[5]],
+                        WhyYou = userDb[columns[6]],
+                        Status = userDb[columns[8]],
                     };
                     i++;
-                    CriticRoot.newCritics.Add(critic);
+                    Data.RvCritics.Add(critic);
                 }
 
                 Console.WriteLine($"Данные судей восстановлены ({i})\n");
@@ -222,19 +228,19 @@ namespace RightVisionBot.Back
                 {
                     var member = new RvMember
                     {
-                        UserId = long.Parse(userDb[columns[2]].ToString()),
-                        Curator = long.Parse(userDb[columns[8]].ToString()),
-                        Name = userDb[columns[0]].ToString(),
-                        Telegram = userDb[columns[1]].ToString(),
-                        Country = userDb[columns[3]].ToString(),
-                        City = userDb[columns[4]].ToString(),
-                        Link = userDb[columns[5]].ToString(),
-                        Rate = userDb[columns[6]].ToString(),
-                        TrackStr = userDb[columns[7]].ToString(),
-                        Status = userDb[columns[9]].ToString()
+                        UserId = long.Parse(userDb[columns[2]]),
+                        Curator = long.Parse(userDb[columns[8]]),
+                        Name = userDb[columns[0]],
+                        Telegram = userDb[columns[1]],
+                        Country = userDb[columns[3]],
+                        City = userDb[columns[4]],
+                        Link = userDb[columns[5]],
+                        Rate = userDb[columns[6]],
+                        TrackStr = userDb[columns[7]],
+                        Status = userDb[columns[9]]
                     };
                     i++;
-                    MemberRoot.newMembers.Add(member);
+                    Data.RvMembers.Add(member);
                 }
 
                 Console.WriteLine($"Данные участников восстановлены ({i})\n");
@@ -245,20 +251,18 @@ namespace RightVisionBot.Back
                 foreach (var ids in idList)
                 {
                     long id = long.Parse(ids);
-                    var fromCritics =
-                        database.Read(
+                    var fromCritics = database.Read(
                             $"SELECT `userId` FROM `RV_Critics` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
-                            "userId");
-                    var fromMembers =
-                        database.Read(
+                            "userId").FirstOrDefault();
+                    var fromMembers = database.Read(
                             $"SELECT `userId` FROM `RV_Members` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
-                            "userId");
+                            "userId").FirstOrDefault();
 
-                    if (fromMembers.FirstOrDefault() != null && fromCritics.FirstOrDefault() == null)
+                    if (fromMembers != null && fromCritics == null)
                         RvUser.Get(id).Status = Status.Member;
-                    else if (fromMembers.FirstOrDefault() == null && fromCritics.FirstOrDefault() != null)
+                    else if (fromMembers == null && fromCritics != null)
                         RvUser.Get(id).Status = Status.Critic;
-                    else if (fromMembers.FirstOrDefault() != null && fromCritics.FirstOrDefault() != null)
+                    else if (fromMembers != null && fromCritics != null)
                         RvUser.Get(id).Status = Status.CriticAndMember;
                     else
                         RvUser.Get(id).Status = Status.User;
@@ -275,16 +279,10 @@ namespace RightVisionBot.Back
                 {
                     var trackCard = new TrackInfo()
                     {
-                        UserId = long.Parse(card[columns[0]].ToString()),
-                        Track = String.IsNullOrEmpty(card[columns[1]].ToString())
-                            ? null
-                            : card[columns[1]].ToString(),
-                        Image = String.IsNullOrEmpty(card[columns[2]].ToString())
-                            ? null
-                            : card[columns[2]].ToString(),
-                        Text = String.IsNullOrEmpty(card[columns[3]].ToString())
-                            ? null
-                            : card[columns[3]].ToString()
+                        UserId = long.Parse(card[columns[0]]),
+                        Track = string.IsNullOrEmpty(card[columns[1]]) ? null : card[columns[1]],
+                        Image = string.IsNullOrEmpty(card[columns[2]]) ? null : card[columns[2]],
+                        Text =  string.IsNullOrEmpty(card[columns[3]]) ? null : card[columns[3]]
                     };
                     RvMember.Get(trackCard.UserId).Track = trackCard; 
                     i++;
@@ -302,12 +300,12 @@ namespace RightVisionBot.Back
                 {
                     CriticVote _rate = new()
                     {
-                        UserId = long.Parse(rate["userId"].ToString()),
-                        ArtistId = long.Parse(rate["artistId"].ToString()),
-                        Rate1 = int.Parse(rate["rate1"].ToString()),
-                        Rate2 = int.Parse(rate["rate2"].ToString()),
-                        Rate3 = int.Parse(rate["rate3"].ToString()),
-                        Rate4 = int.Parse(rate["rate4"].ToString())
+                        UserId = long.Parse(rate["userId"]),
+                        ArtistId = long.Parse(rate["artistId"]),
+                        Rate1 = int.Parse(rate["rate1"]),
+                        Rate2 = int.Parse(rate["rate2"]),
+                        Rate3 = int.Parse(rate["rate3"]),
+                        Rate4 = int.Parse(rate["rate4"])
                     };
                     RvCritic.Get(_rate.UserId).CriticRate = _rate;
                     i++;
@@ -328,13 +326,12 @@ namespace RightVisionBot.Back
 
                     foreach (var user in values)
                     {
-                        string userId = user["userId"].ToString();
-                        string track = user["track"].ToString();
-                        string userStatus = user["status"].ToString();
-                        string categoryName = user["category"].ToString();
+                        string userId = user["userId"];
+                        string track = user["track"];
+                        string userStatus = user["status"];
+                        string categoryName = user["category"];
 
-                        bool userExists =
-                            database.Read($"SELECT `userId` FROM RV_C{categoryName.ToLower()} WHERE userId = '{userId}';", "userId").FirstOrDefault() != null;
+                        bool userExists = database.Read($"SELECT `userId` FROM RV_C{categoryName.ToLower()} WHERE userId = '{userId}';", "userId").FirstOrDefault() != null;
 
                         if (!userExists)
                             database.Read($"INSERT INTO RV_C{categoryName.ToLower()} (userId, track, status) VALUES ('{userId}', '{track}', '{userStatus}');", "");

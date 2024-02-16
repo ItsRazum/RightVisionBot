@@ -14,31 +14,26 @@ namespace RightVisionBot.Back
             try
             {
                 db.Open();
-                using (var cmd = db.CreateCommand())
-                {
-                    cmd.Connection = db;
-                    cmd.CommandText = query;
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        List<List<string>> data = new();
-                        List<string> rows = new();
-                        while (reader.Read())
-                            rows.Add(reader[columnName].ToString());
+                using var cmd = db.CreateCommand();
+                cmd.Connection = db;
+                cmd.CommandText = query;
+                using var reader = cmd.ExecuteReader();
+                List<string> rows = new();
+                while (reader.Read())
+                    rows.Add(reader[columnName].ToString());
 
-                        reader.Close();
-                        db.Close();
-                        return rows;
-                    }
-                }
+                reader.Close();
+                db.Close();
+                return rows;
             }
-            catch (MySqlException ex)
+            catch
             {
                 db.Close();
-                throw ex;
+                throw;
             }
         }
 
-        public List<Dictionary<string, object>> ExtRead(string query, string[] columnNames)
+        public List<Dictionary<string, string>> ExtRead(string query, string[] columnNames)
         {
             Console.WriteLine("Подключение к базе...");
             try
@@ -49,15 +44,13 @@ namespace RightVisionBot.Back
                 cmd.CommandText = query;
                 using var reader = cmd.ExecuteReader();
                 Console.WriteLine("Подключено. Извлечение данных...");
-                List<Dictionary<string, object>> data = new();
+                List<Dictionary<string, string>> data = new();
 
                 while (reader.Read())
                 {
-                    Dictionary<string, object> row = new();
+                    Dictionary<string, string> row = new();
                     foreach (var columnName in columnNames)
-                    {
-                        row[columnName] = reader[columnName];
-                    }
+                        row[columnName] = reader[columnName].ToString();
 
                     data.Add(row);
                 }
@@ -67,11 +60,11 @@ namespace RightVisionBot.Back
                 Console.WriteLine("Данные получены");
                 return data;
             }
-            catch (MySqlException ex)
+            catch
             {
                 Console.WriteLine("Произошла ошибка при подключении к базе данных! (ExtRead)");
                 db.Close();
-                throw ex;
+                throw;
             }
         }
     }

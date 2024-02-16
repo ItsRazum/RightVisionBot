@@ -82,7 +82,7 @@ namespace RightVisionBot.User
 
         public static RvMember Get(long userId)
         {
-            foreach (RvMember member in MemberRoot.newMembers)
+            foreach (RvMember member in Data.RvMembers)
             {
                 if (member.UserId == userId)
                     return member;
@@ -96,7 +96,6 @@ namespace RightVisionBot.User
     class MemberRoot
     {
         static sql database = Program.database;
-        public static volatile List<RvMember> newMembers = new();
 
         public static void EnterName(ITelegramBotClient botClient, Update update)
         {
@@ -120,7 +119,7 @@ namespace RightVisionBot.User
                     var removeKeyboard = new ReplyKeyboardRemove();
                     ReplyKeyboardMarkup backButton = new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang)) }) { ResizeKeyboard = true };
                     botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterName", RvUser.Get(userId).Lang), RvUser.Get(userId).userName), replyMarkup: backButton);
-                    Program.updateRvLocation(userId, "memberform");
+                    Program.UpdateRvLocation(userId, "memberform");
                     botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} начал заполнение заявки на участие\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
                 }
                 */

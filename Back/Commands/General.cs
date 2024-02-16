@@ -22,7 +22,7 @@ public class General
                 case "/start":
                     if (message.Chat.Type == ChatType.Private)
                         await botClient.SendTextMessageAsync(message.Chat, "Choose lang:",
-                            replyMarkup: Keyboard.chooseLang);
+                            replyMarkup: Keyboard.СhooseLang);
                     break;
                 case "🇷🇺ru / cis":
                     if (message.Chat.Type == ChatType.Private)
@@ -35,10 +35,6 @@ public class General
                 case "🇰🇿kz":
                     if (message.Chat.Type == ChatType.Private)
                         await HubClass.Hub(botClient, message, "kz");
-                    break;
-                case "🇬🇧en":
-                    if (message.Chat.Type == ChatType.Private)
-                        await HubClass.Hub(botClient, message, "en");
                     break;
             }
         }
@@ -56,6 +52,26 @@ public class General
                 else
                     await UserProfile.Profile(message);
                 break;
+            case "/about":
+                await botClient.SendTextMessageAsync(message.Chat, "RightVision Bot\n" +
+                                                                   $"Дата сборки: {ConfigReader.BuildDate}\n" +
+                                                                   "Разработчик: @NtRazum\n\n" +
+                                                                   "Переводчики:\n" +
+                                                                   "UA: @crink1337 & @elec7reify\n" +
+                                                                   "KZ: @chrkovsky\n" +
+                                                                   "\nИспользованный стек:\n" +
+                                                                   "- Язык программирования: C#\n" +
+                                                                   "Использованные библиотеки:\n" +
+                                                                   "- Telegram.Bot\n" +
+                                                                   "- MySQL Connector\n" +
+                                                                   "Прочее ПО:\n" +
+                                                                   "- PhpMyAdmin\n" +
+                                                                   "-.NET 7.0\n\n" +
+                                                                   "Особые благодарности:\n" +
+                                                                   "- @Viktor290906 - за перевод старой версии английского языка\n" +
+                                                                   "- @elec7reify - за минимальную, но всё же помощь в разработке\n" +
+                                                                   "- @banan41ck - за рисование аватарки для бота");
+                break;
             default:
                 if (rvUser.RvLocation == RvLocation.MemberForm)
                     Forms.Member.Form(botClient, message);
@@ -63,7 +79,13 @@ public class General
                     Forms.Critic.Form(botClient, message);
                 break;
         }
+
         if (message.Text == Language.GetPhrase("Keyboard_Choice_MainMenu", rvUser.Lang) && message.Chat.Type == ChatType.Private)
+        {
+            string fullName = message.From.FirstName + " " + message.From.LastName; 
+            await botClient.SendTextMessageAsync(message.Chat, "✅", replyMarkup: Keyboard.remove);
             await HubClass.Hub(botClient, message, rvUser.Lang);
+        }
+            
     }
 }

@@ -18,79 +18,80 @@ namespace RightVisionBot.Back.Forms
         {
             sql database = Program.database;
             long userId = message.From.Id;
-            var chooseRate = Keyboard.chooseRate(RvUser.Get(userId).Lang);
-            var backButton = Keyboard.backButton(RvUser.Get(userId).Lang);
-            var MainMenu   = Keyboard.MainMenu(RvUser.Get(userId).Lang);
             var critic = RvCritic.Get(userId);
-            string back = Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang);
+            var rvUser = RvUser.Get(userId);
+            var chooseRate = Keyboard.chooseRate(rvUser.Lang);
+            var backButton = Keyboard.backButton(rvUser.Lang);
+            var MainMenu   = Keyboard.MainMenu(rvUser.Lang);
+            string back = Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang);
 
             if (critic != null && critic.UserId == userId)
             {
                 if (message.Text == "0" || message.Text.Contains("'"))
-                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_DontEnterZero", RvUser.Get(userId).Lang));
+                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_DontEnterZero", rvUser.Lang));
                 else
                     if (critic.Name == "0")
                         if (message.Text == back)
                         {
                             database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{userId}';", "");
-                            CriticRoot.newCritics.Remove(critic);
-                            botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} отменил заполнение заявки на судейство\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                            Data.RvCritics.Remove(critic);
+                            botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} отменил заполнение заявки на судейство\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
                             HubClass.SelectRole(botClient, message);
                         }
                         else
                         {
                             critic.Name = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterLink", RvUser.Get(userId).Lang), message.Text), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterLink", rvUser.Lang), critic.Name), replyMarkup: backButton);
                         }
 
                     else if (critic.Name != "0" && critic.Link == "0")
                         if (message.Text == back)
                         {
                             critic.Name = "0";
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterName", RvUser.Get(userId).Lang), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterName", rvUser.Lang), replyMarkup: backButton);
                         }
                         else if (!message.Text.StartsWith("https://"))
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_IncorrectFormat", RvUser.Get(userId).Lang));
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_IncorrectFormat", rvUser.Lang));
                         else
                         {
                             critic.Link = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterRate", RvUser.Get(userId).Lang), replyMarkup: chooseRate);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterRate", rvUser.Lang), replyMarkup: chooseRate);
                         }
 
                     else if (critic.Link != "0" && critic.Rate == "0")
                         if (message.Text == back)
                         {
                             critic.Link = "0";
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterLink", RvUser.Get(userId).Lang), RvMember.Get(userId).Name), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterLink", rvUser.Lang), critic.Name), replyMarkup: backButton);
                         }
                         else
                         {
                             critic.Rate = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterAboutYou", RvUser.Get(userId).Lang), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterAboutYou", rvUser.Lang), replyMarkup: backButton);
                         }
 
                     else if (critic.Rate != "0" && critic.About == "0")
                         if (message.Text == back)
                         {
                             critic.Link = "0";
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterRate", RvUser.Get(userId).Lang), critic.Name), replyMarkup: chooseRate);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterRate", rvUser.Lang), critic.Name), replyMarkup: chooseRate);
                         }
                         else
                         {
                             critic.About = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterWhyYou", RvUser.Get(userId).Lang), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_EnterWhyYou", rvUser.Lang), replyMarkup: backButton);
                         }
 
                     else if (critic.About != "0" && critic.WhyYou == "0")
                         if (message.Text == back)
                         {
                             critic.About = "0";
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterAboutYou", RvUser.Get(userId).Lang), critic.Name), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Critic_Messages_EnterAboutYou", rvUser.Lang), critic.Name), replyMarkup: backButton);
                         }
                         else
                         {
                             critic.WhyYou = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_FormSubmitted", RvUser.Get(userId).Lang), replyMarkup: MainMenu);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Critic_Messages_FormSubmitted", rvUser.Lang), replyMarkup: MainMenu);
                             botClient.SendTextMessageAsync(-1001968408177,
                                 $"Пришла новая заявка на должность судьи!\n\n" +
                                 $"Имя: {critic.Name}\n" +

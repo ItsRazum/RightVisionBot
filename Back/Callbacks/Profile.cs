@@ -32,14 +32,14 @@ namespace RightVisionBot.Back.Callbacks
                     break;
                 case "menu_cancelCritic":
                     Program.database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{callbackUserId}';", "");
-                    CriticRoot.newCritics.Remove(RvCritic.Get(callbackUserId));
+                    Data.RvCritics.Remove(RvCritic.Get(callbackUserId));
                     await botClient.SendTextMessageAsync(-4074101060,
                         $"Пользователь @{callback.From.Username} отменил заполнение заявки на судейство\n=====\nId:{callbackUserId}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}",
                         disableNotification: true);
                     goto case "menu_forms";
                 case "menu_cancelMember":
                     Program.database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{callbackUserId}';", "");
-                    MemberRoot.newMembers.Remove(RvMember.Get(callbackUserId));
+                    Data.RvMembers.Remove(RvMember.Get(callbackUserId));
                     await botClient.SendTextMessageAsync(-4074101060,
                         $"Пользователь @{callback.From.Username} отменил заполнение заявки на участие\n=====\nId:{callbackUserId}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}",
                         disableNotification: true);

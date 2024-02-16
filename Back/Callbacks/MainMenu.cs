@@ -30,12 +30,32 @@ namespace RightVisionBot.Back.Callbacks
                         HubClass.SubscribeSending(botClient, callback);
                     break;
                 case "menu_about":
-                    await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, Language.GetPhrase("Messages_About", rvUser.Lang), replyMarkup: Keyboard.InlineBack(rvUser));
+                    await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, Language.GetPhrase("Messages_About", rvUser.Lang), replyMarkup: Keyboard.About(rvUser));
                     break;
                 case "menu_main":
                 case "menu_back":
-                    Program.updateRvLocation(callbackUserId, RvLocation.MainMenu);
+                    Program.UpdateRvLocation(callbackUserId, RvLocation.MainMenu);
                     await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, string.Format(Language.GetPhrase("Messages_Greetings", rvUser.Lang), fullname), replyMarkup: Keyboard.Hub(rvUser));
+                    break;
+                case "menu_aboutBot":
+                    await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, "RightVision Bot\n" +
+                        $"Дата сборки: {ConfigReader.BuildDate}\n" +
+                        "Разработчик: @NtRazum\n\n" +
+                        "Переводчики:\n" +
+                        "UA: @crink1337 & @elec7reify\n" +
+                        "KZ: @chrkovsky\n" +
+                        "\nИспользованный стек:\n" +
+                        "- Язык программирования: C#\n" +
+                        "Использованные библиотеки:\n" +
+                        "- Telegram.Bot\n" +
+                        "- MySQL Connector\n" +
+                        "Прочее ПО:\n" +
+                        "- PhpMyAdmin\n" +
+                        "-.NET 7.0\n\n" +
+                        "Особые благодарности:\n" +
+                        "- @Viktor290906 - за перевод старой версии английского языка\n" +
+                        "- @elec7reify - за минимальную, но всё же помощь в разработке\n" +
+                        "- @banan41ck - за рисование аватарки для бота", replyMarkup: Keyboard.BackToAbout(rvUser));
                     break;
                 case "menu_profile":
                     if (rvUser.Has(Permission.OpenProfile))
@@ -46,7 +66,7 @@ namespace RightVisionBot.Back.Callbacks
                             From = new Telegram.Bot.Types.User()
                                 { Id = callback.From.Id, }
                         };
-                        Program.updateRvLocation(callbackUserId, RvLocation.Profile);
+                        Program.UpdateRvLocation(callbackUserId, RvLocation.Profile);
                         await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
                             UserProfile.ProfileFormat(message, RvUser.Get(callbackUserId)),
                             replyMarkup: Keyboard.ProfileOptions(RvUser.Get(callbackUserId), message));

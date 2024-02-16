@@ -1,5 +1,4 @@
-﻿using RightVisionBot.Common;
-using RightVisionBot.Tracks;
+﻿using RightVisionBot.Tracks;
 using RightVisionBot.UI;
 using RightVisionBot.User;
 using System;

@@ -21,7 +21,7 @@ namespace RightVisionBot.Back.Commands.Admin
             else
             {
                 database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{newMessage}';", "");
-                MemberRoot.newMembers.Remove(RvMember.Get(newMessage));
+                Data.RvMembers.Remove(RvMember.Get(newMessage));
 
                 RvUser.Get(newMessage).AddPermissions(array: new [] { Permission.SendMemberForm });
                 await botClient.SendTextMessageAsync(message.Chat, $"Участие пользователя Id:{newMessage} аннулировано");
@@ -41,7 +41,7 @@ namespace RightVisionBot.Back.Commands.Admin
             else
             {
                 database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{newMessage}';", "");
-                CriticRoot.newCritics.Remove(RvCritic.Get(newMessage));
+                Data.RvCritics.Remove(RvCritic.Get(newMessage));
                 RvUser.Get(newMessage).AddPermissions(array: new[] { Permission.SendCriticForm });
 
                 await botClient.SendTextMessageAsync(message.Chat, $"Судейство пользователя Id:{newMessage} аннулировано");

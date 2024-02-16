@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RightVisionBot.Common;
+using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 

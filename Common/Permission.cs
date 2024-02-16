@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -32,7 +33,7 @@ class PermissionLayouts
             Permission.ChattingInMemberChat,
         };
 
-        public static HashSet<Permission> Moderator = new()
+        public static HashSet<Permission> Moderator = new(User)
         {
             Permission.Mute,                 Permission.Unmute,
             Permission.Cancel

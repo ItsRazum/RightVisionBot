@@ -30,7 +30,7 @@ namespace RightVisionBot.UI
             InlineKeyboardMarkup keyboard = Keyboard.ProfileOptions(RvUser.Get(getId), message);
             RvUser rvUser = RvUser.Get(getId);
             if (message.Chat.Type == ChatType.Private)
-                Program.updateRvLocation(userId, RvLocation.Profile);
+                Program.UpdateRvLocation(userId, RvLocation.Profile);
             await botClient.SendTextMessageAsync(message.Chat, ProfileFormat(message, rvUser), replyMarkup: keyboard);
         }
 
@@ -188,7 +188,7 @@ namespace RightVisionBot.UI
             string header = update.CallbackQuery.From.Id == rvUser.UserId
                 ? Language.GetPhrase("Profile_Permissions_Header", rvUser.Lang)
                 : string.Format(Language.GetPhrase("Profile_Permissions_Header_Global", rvUser.Lang),
-                    RvCritic.Get(update.CallbackQuery.From.Id) == null
+                    RvCritic.Get(update.CallbackQuery.From.Id) != null
                         ? RvMember.Get(rvUser.UserId).Name
                         : RvCritic.Get(rvUser.UserId).Name);
             int standartCount = 10;
@@ -205,20 +205,22 @@ namespace RightVisionBot.UI
             if (rvUser.Permissions.Count < 10)
                 keyboard = back;
 
-            layout = rvUser.Role switch
+            layout = rvUser.Status switch
+            {
+                Status.Critic => PermissionLayouts.Critic,
+                Status.CriticAndMember => PermissionLayouts.CriticAndMember,
+                Status.Member => PermissionLayouts.Member,
+                _ => PermissionLayouts.User
+            };
+
+            layout = Permissions.AddPermissions(layout, rvUser.Role switch
             {
                 Role.Admin => Permissions.AddPermissions(layout, PermissionLayouts.Admin),
                 Role.Curator => Permissions.AddPermissions(layout, PermissionLayouts.Curator),
                 Role.Moderator => Permissions.AddPermissions(layout, PermissionLayouts.Moderator),
                 Role.Developer => Permissions.AddPermissions(layout, PermissionLayouts.Developer),
-                _ => rvUser.Status switch
-                {
-                    Status.Critic => PermissionLayouts.Critic,
-                    Status.CriticAndMember => PermissionLayouts.CriticAndMember,
-                    Status.Member => PermissionLayouts.Member,
-                    _ => PermissionLayouts.User
-                }
-            };
+                Role.SeniorModerator => Permissions.AddPermissions(layout, PermissionLayouts.SeniorModerator)
+            });
 
             int count = rvUser.Permissions.Count <= standartCount ? rvUser.Permissions.Count : standartCount;
 

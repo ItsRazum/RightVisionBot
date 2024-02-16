@@ -14,6 +14,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 //система чтения, записи и отправки треков
 namespace RightVisionBot.Tracks
 {
+    [Serializable]
     public class TrackInfo
     {
         public long UserId;
@@ -89,7 +90,7 @@ namespace RightVisionBot.Tracks
                     { new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_MainMenu", rvUser.Lang)) } })
             { ResizeKeyboard = true };
 
-            Program.updateRvLocation(userId, RvLocation.TrackCard);
+            Program.UpdateRvLocation(userId, RvLocation.TrackCard);
             if (!isExists)
                 botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} создал карточку ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
 
@@ -111,7 +112,7 @@ namespace RightVisionBot.Tracks
 
         public static TrackInfo GetTrack(long userId)
         {
-            foreach (var trackInfo in MemberRoot.newMembers)
+            foreach (var trackInfo in Data.RvMembers)
                 if (trackInfo.Track != null && trackInfo.Track.UserId == userId)
                     return trackInfo.Track;
 

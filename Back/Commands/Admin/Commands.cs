@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RightVisionBot.Common;
+using RightVisionBot.Tracks;
 using Telegram.Bot.Types;
 using Telegram.Bot;
+using RightVisionBot.User;
 
 namespace RightVisionBot.Back.Commands.Admin
 {
@@ -83,6 +85,25 @@ namespace RightVisionBot.Back.Commands.Admin
                     await Cancel.Participation(botClient, message);
                 else if (message.Text.ToLower().StartsWith("аннулировать судейство "))
                     await Cancel.Critic(botClient, message);
+            }
+            else if (message.Text.StartsWith("link ") && rvUser.Has(Permission.CriticChat))
+            {
+                var args = message.Text.Split(" ");
+
+                var idAsList = Program.database.Read($"SELECT `userId` FROM `RV_Tracks` LIMIT 1 OFFSET {int.Parse(args[1]) - 1}", "userId");
+                Program.database.Read($"UPDATE `RV_Tracks` SET `link` = '{args[2]}' WHERE `userId` = {idAsList.FirstOrDefault()}", "");
+                await botClient.SendTextMessageAsync(message.Chat, "Ссылка успешно привязана!");
+                await botClient.SendTextMessageAsync(long.Parse(idAsList.FirstOrDefault()),
+                    "Уважаемый участник!" +
+                    "\nОрганизаторы добавили ссылку на твой ремикс в облаке! Можешь качать и заливать к себе на канал :)" +
+                    "\nЧтобы её получить - перейди в свой профиль и нажми \"Получить визуал ремикса\".");
+            }
+
+            else if (message.Text.StartsWith("/get "))
+            {
+                string newMessage = message.Text.Replace("/get ", "");
+                int value = int.Parse(newMessage);
+                Track.SendFilesByOne(botClient, value);
             }
         }
     }

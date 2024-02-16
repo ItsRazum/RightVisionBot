@@ -27,7 +27,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 Telegram.Bot.Types.User mutedUser = mutedMember.User;
                 DateTime time = DateTime.Now.AddHours(1);
 
-                RvUser.Get(mutedId).AddPunishment(RvPunishment.PunishmentType.Mute, message.Chat.Id, "не указана", DateTime.Now,time);
+                RvUser.Get(mutedId).AddPunishment(RvPunishment.PunishmentType.Mute, message.Chat.Id, "не указана", DateTime.Now, time);
                 await botClient.SendTextMessageAsync(message.Chat, $"Пользователь {mutedUser.FirstName} получает мут в группе!");
                 await botClient.RestrictChatMemberAsync(message.Chat, mutedId, new ChatPermissions()
                 {
@@ -111,7 +111,7 @@ namespace RightVisionBot.Back.Commands.Admin
             if (RvUser.Get(message.From.Id).Has(Permission.Ban))
             {
                 await botClient.SendTextMessageAsync(message.Chat, "Начинается проверка прав доступа у всех участников группы, это займёт некоторое время...");
-                foreach (var user in Program.users)
+                foreach (var user in Data.RvUsers)
                     try
                     {
                         var chatMember = await botClient.GetChatMemberAsync(-1002074764678, user.UserId);
@@ -124,7 +124,9 @@ namespace RightVisionBot.Back.Commands.Admin
                     }
                     catch
                     {
-                        await botClient.SendTextMessageAsync(message.Chat, $"Произошла неизвестная ошибка, проверка прав доступа прервана!");
+                        await botClient.SendTextMessageAsync(message.Chat,
+                            "Произошла неизвестная ошибка, проверка прав доступа прервана!");
+                        break;
                     }
 
                 if (Hares.Count > 0)

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using RightVisionBot.Common;
 using RightVisionBot.Tracks;
 using RightVisionBot.UI;
+using RightVisionBot.User;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -14,7 +15,13 @@ namespace RightVisionBot.Back
 {
     internal class Keyboard
     {
-        public static InlineKeyboardMarkup Hub(RvUser rvUser) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup About(RvUser rvUser) => new(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_main"),
+            InlineKeyboardButton.WithCallbackData("Информация про бота", "menu_aboutBot")
+        });
+
+        public static InlineKeyboardMarkup Hub(RvUser rvUser) => new(new[]
         {
             new[]
             {
@@ -86,16 +93,19 @@ namespace RightVisionBot.Back
         });
 
         //=======
-        public static InlineKeyboardMarkup InlineBack(RvUser rvUser, RvLocation? type = null) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup InlineBack(RvUser rvUser, RvLocation? type = null) => new (new[]
         { new [] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), 
             type switch
                 {
                     RvLocation.Profile => "menu_profile", 
                     _ => "menu_main"
                 }
-            )
-            }
+            ) }
         });
+
+        //=======
+        public static InlineKeyboardMarkup BackToAbout(RvUser rvUser) => new(new[]
+        { new [] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_about") } });
 
         //=======
         public static InlineKeyboardMarkup CancelForm(RvUser rvUser, Status? type = null) => new InlineKeyboardMarkup(new[]
@@ -157,17 +167,16 @@ namespace RightVisionBot.Back
             { ResizeKeyboard = true };
         
         //=======
-        public static ReplyKeyboardMarkup chooseLang = new(new[]
+        public static ReplyKeyboardMarkup СhooseLang = new(new[]
         {
                 new[]
                 {
-                    new KeyboardButton("🇷🇺RU / CIS"),
-                    new KeyboardButton("🇺🇦UA")
+                    new KeyboardButton("🇷🇺RU / CIS")
                 },
                 new[]
                 {
-                    new KeyboardButton("🇰🇿KZ"),
-                    new KeyboardButton("🇬🇧EN")
+                    new KeyboardButton("🇺🇦UA"),
+                    new KeyboardButton("🇰🇿KZ")
                 }
             })
         { ResizeKeyboard = true };

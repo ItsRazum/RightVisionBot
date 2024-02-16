@@ -44,7 +44,7 @@ namespace RightVisionBot.Back.Callbacks
                     await Track.Send(botClient, callback: callback);
                     break;
                 case "m_edittrack":
-                    Program.updateRvLocation(callbackUserId, RvLocation.EditTrack);
+                    Program.UpdateRvLocation(callbackUserId, RvLocation.EditTrack);
                     await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, Language.GetPhrase("Profile_Member_Track_EnterNewTrack", rvUser.Lang), replyMarkup: Keyboard.InlineBack(rvUser, RvLocation.Profile));
                     break;
             }

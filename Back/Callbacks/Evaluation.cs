@@ -105,9 +105,6 @@ namespace RightVisionBot.Back.Callbacks
                 case "r_nexttrack":
                     await TrackEvaluation.NextTrack(botClient, callback, vote);
                     break;
-                case "r_exit":
-
-                    break;
             }
         }
     }

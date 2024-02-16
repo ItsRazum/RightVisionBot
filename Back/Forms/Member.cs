@@ -18,90 +18,91 @@ namespace RightVisionBot.Back.Forms
         {
             var database = Program.database;
             var userId = message.From.Id;
-            var chooseRate = Keyboard.chooseRate(RvUser.Get(userId).Lang);
-            var backButton = Keyboard.backButton(RvUser.Get(userId).Lang);
-            var mainMenu =   Keyboard.MainMenu(RvUser.Get(userId).Lang);
-            var memberAcceptOrDeny = Keyboard.memberAcceptOrDeny;
             var member = RvMember.Get(userId);
-            var back = Language.GetPhrase("Keyboard_Choice_Back", RvUser.Get(userId).Lang);
+            var rvUser = RvUser.Get(userId);
+            var chooseRate = Keyboard.chooseRate(rvUser.Lang);
+            var backButton = Keyboard.backButton(rvUser.Lang);
+            var mainMenu =   Keyboard.MainMenu(rvUser.Lang);
+            var memberAcceptOrDeny = Keyboard.memberAcceptOrDeny;
+            var back = Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang);
 
             if (member != null && member.UserId == userId)
             {
                 if (message.Text == "0" || message.Text.Contains('\''))
-                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_DontEnterZero", RvUser.Get(userId).Lang));
+                    botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_DontEnterZero", rvUser.Lang));
                 else
                     if (member.Name == "0")
                         if (message.Text == back)
                         {
                             database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{userId}';", "");
-                            MemberRoot.newMembers.Remove(RvMember.Get(userId));
-                            botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} отменил заполнение заявки на участие\n=====\nId:{message.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                            Data.RvMembers.Remove(RvMember.Get(userId));
+                            botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} отменил заполнение заявки на участие\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
                             HubClass.SelectRole(botClient, message);
                         }
                         else
                         {
                             member.Name = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCountry", RvUser.Get(userId).Lang), message.Text), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCountry", rvUser.Lang), message.Text), replyMarkup: backButton);
                         }
 
                     else if (member.Name != "0" && member.Country == "0")
                         if (message.Text == back)
                         {
                             member.Name = "0";
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterName", RvUser.Get(userId).Lang));
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterName", rvUser.Lang));
                         }
                         else
                         {
                             member.Country = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCity", RvUser.Get(userId).Lang), member.Name), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCity", rvUser.Lang), member.Name), replyMarkup: backButton);
                         }
 
                     else if (member.Country != "0" && member.City == "0")
                         if (message.Text == back)
                         {
                             member.Country = "0";
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCountry", RvUser.Get(userId).Lang), member.Name), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCountry", rvUser.Lang), member.Name), replyMarkup: backButton);
                         }
                         else
                         {
                             member.City = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterLink", RvUser.Get(userId).Lang), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterLink", rvUser.Lang), replyMarkup: backButton);
                         }
 
                     else if (member.City != "0" && member.Link == "0")
                         if (message.Text == back)
                         {
                             member.City = "0";
-                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCity", RvUser.Get(userId).Lang), member.Name), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Member_Messages_EnterCity", rvUser.Lang), member.Name), replyMarkup: backButton);
                         }
                         else
                         {
                             member.Link = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterRate", RvUser.Get(userId).Lang), replyMarkup: chooseRate);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterRate", rvUser.Lang), replyMarkup: chooseRate);
                         }
 
                     else if (member.Link != "0" && member.Rate == "0")
                         if (message.Text == back)
                         {
                             member.Link = "0";
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterLink", RvUser.Get(userId).Lang), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterLink", rvUser.Lang), replyMarkup: backButton);
                         }
                         else
                         {
                             member.Rate = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterTrack", RvUser.Get(userId).Lang), replyMarkup: backButton);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterTrack", rvUser.Lang), replyMarkup: backButton);
                         }
 
                     else if (member.Rate != "0" && member.TrackStr == "0")
                         if (message.Text == back)
                         {
                             member.Rate = "0";
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterRate", RvUser.Get(userId).Lang), replyMarkup: chooseRate);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_EnterRate", rvUser.Lang), replyMarkup: chooseRate);
                         }
                         else
                         {
                             member.TrackStr = message.Text;
-                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_FormSubmitted", RvUser.Get(userId).Lang), replyMarkup: mainMenu);
+                            botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Member_Messages_FormSubmitted", rvUser.Lang), replyMarkup: mainMenu);
                             botClient.SendTextMessageAsync(-1001968408177,
                                 $"Пришла новая заявка на участие!\n\n" +
                                 $"Имя: {member.Name}\n" +

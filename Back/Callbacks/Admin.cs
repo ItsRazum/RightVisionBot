@@ -7,6 +7,7 @@ using RightVisionBot.Back.Commands.Admin;
 using RightVisionBot.Common;
 using Telegram.Bot.Types;
 using Telegram.Bot;
+using RightVisionBot.User;
 
 namespace RightVisionBot.Back.Callbacks
 {

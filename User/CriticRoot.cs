@@ -63,7 +63,7 @@ namespace RightVisionBot.User
 
         public static RvCritic Get(long userId)
         {
-            foreach (RvCritic critic in CriticRoot.newCritics)
+            foreach (RvCritic critic in Data.RvCritics)
                 if (critic.UserId == userId)
                     return critic;
 
@@ -74,7 +74,6 @@ namespace RightVisionBot.User
     class CriticRoot
     {
         private static sql database = Program.database;
-        public static volatile List<RvCritic> newCritics = new();
 
         public static void EnterName(ITelegramBotClient botClient, Update update)
         {
@@ -85,14 +84,14 @@ namespace RightVisionBot.User
             //botClient.SendTextMessageAsync(update.Message.Chat, Language.GetPhrase("Critic_Messages_EnrollmentClosed", RvUser.Get(update.Message.From.Id).Lang));
             if (RvCritic.Get(userId) == null)
             {
-                Program.updateRvLocation(userId, RvLocation.CriticForm);
+                Program.UpdateRvLocation(userId, RvLocation.CriticForm);
                 RvCritic critic = new();
                 critic.UserId = userId;
                 critic.Telegram = "@" + telegram;
 
                 var query = $"INSERT INTO `RV_Critics` (`telegram`, `userId`) VALUES ('{critic.Telegram}', '{critic.UserId}');";
                 database.Read(query, "");
-                newCritics.Add(critic);
+                Data.RvCritics.Add(critic);
                 var removeKeyboard = new ReplyKeyboardRemove();
                 ReplyKeyboardMarkup backButton = new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang)) }) { ResizeKeyboard = true };
                 botClient.EditMessageTextAsync(message.Chat, update.CallbackQuery.Message.MessageId, Language.GetPhrase("Critic_Messages_EnterName", rvUser.Lang), replyMarkup: Keyboard.CancelForm(rvUser, Status.Critic));
@@ -147,7 +146,7 @@ namespace RightVisionBot.User
             long userId = callback.From.Id;
             if (RvUser.Get(userId).Has(Permission.Curate))
             {
-                Program.updateRvLocation(userId, RvLocation.PreListening);
+                Program.UpdateRvLocation(userId, RvLocation.PreListening);
                 InlineKeyboardMarkup actions = new(new[]
                     {
                         new[] { InlineKeyboardButton.WithCallbackData("Начать предварительное прослушивание", "c_startprelistening") },
@@ -166,15 +165,15 @@ namespace RightVisionBot.User
             { ResizeKeyboard = true };
             long userId = callback.From.Id;
             var actions = Keyboard.actions;
-            var artistId = from rvMember in MemberRoot.newMembers where (rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
+            var artistId = from rvMember in Data.RvMembers where (rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
             if (!artistId.Any())
             {
                 await botClient.AnswerCallbackQueryAsync(callback.Id, "Свободные треки для прослушивания не найдены!", showAlert: true);
-                Program.updateRvLocation(userId, RvLocation.CriticMenu);
+                Program.UpdateRvLocation(userId, RvLocation.CriticMenu);
                 await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} открыл судейское меню \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
             }
-                
+            
             else
             {
                 RvCritic.Get(userId).PreListeningArtist = artistId.First();
@@ -195,12 +194,12 @@ namespace RightVisionBot.User
             long userId = callback.From.Id;
             RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Track.Status = "ok";
 
-            var artistId = from rvMember in MemberRoot.newMembers where(rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
+            var artistId = from rvMember in Data.RvMembers where(rvMember.Status == "waiting" && rvMember.Track.Image != null && rvMember.Track.Track != null) select rvMember.UserId;
             var trackName = RvMember.Get(artistId.First()).TrackStr;
             if (!artistId.Any())
             {
                 await botClient.AnswerCallbackQueryAsync(callback.Id, "Свободные треки для прослушивания не найдены!", showAlert: true);
-                Program.updateRvLocation(userId, RvLocation.CriticMenu);
+                Program.UpdateRvLocation(userId, RvLocation.CriticMenu);
                 await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} открыл судейское меню \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
             }

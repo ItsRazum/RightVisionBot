@@ -4,6 +4,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using RightVisionBot.Common;
+using RightVisionBot.User;
 
 //код главного меню
 namespace RightVisionBot.UI
@@ -22,14 +23,14 @@ namespace RightVisionBot.UI
             {
                 rvUser = RvUser.Get(userId);
                 rvUser.Lang = lang;
-                Program.updateRvLocation(userId, RvLocation.MainMenu);
+                Program.UpdateRvLocation(userId, RvLocation.MainMenu);
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} открыл главное меню на языке {lang}\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
             }
             else
             {
                 rvUser = new()
                 { UserId = userId, Lang = lang };
-                Program.users.Add(rvUser);
+                Data.RvUsers.Add(rvUser);
                 var userToDB = $"INSERT INTO `RV_Users` (`id`, `lang`) VALUES ('{rvUser.UserId}', '{rvUser.Lang}')";
                 database.Read(userToDB, "");
                 await botClient.SendTextMessageAsync(-4074101060, $"Зарегистрирован новый пользователь @{message.From.Username} с языком {lang}", disableNotification: true);
@@ -38,7 +39,6 @@ namespace RightVisionBot.UI
             string[] langs = new[] { "🇷🇺RU / CIS", "🇺🇦UA", "🇰🇿KZ", "🇬🇧EN" };
             if (langs.Contains(message.Text))
                 await botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Messages_LanguageSelected", RvUser.Get(userId).Lang), message.Text), replyMarkup: Keyboard.remove);
-
             await botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Messages_Greetings", RvUser.Get(userId).Lang), fullName), replyMarkup: Keyboard.Hub(rvUser));
         }
 
@@ -67,7 +67,7 @@ namespace RightVisionBot.UI
                 })
             { ResizeKeyboard = true };
             botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Messages_ChooseRole", RvUser.Get(userId).Lang), parseMode: ParseMode.Html, replyMarkup: chooseRole);
-            Program.updateRvLocation(userId, RvLocation.MainMenu);
+            Program.UpdateRvLocation(userId, RvLocation.MainMenu);
         }
 
         public static string SendingStatus(RvUser rvUser)

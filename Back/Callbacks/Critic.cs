@@ -58,7 +58,7 @@ namespace RightVisionBot.Back.Callbacks
                     }
                     if (rvUser.Has(Permission.CriticMenu))
                     {
-                        Program.updateRvLocation(userId, RvLocation.CriticMenu);
+                        Program.UpdateRvLocation(userId, RvLocation.CriticMenu);
                         await botClient.EditMessageTextAsync(chat, message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {rvCritic.Status}", replyMarkup: Keyboard.criticMenu);
                         await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} открыл судейское меню \n=====\nId:{from.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
                     }

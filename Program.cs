@@ -1,15 +1,12 @@
-﻿using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RightVisionBot.Back;
 using Callbacks = RightVisionBot.Back.Callbacks;
 using RightVisionBot.Back.Commands;
 using RightVisionBot.Common;
-using RightVisionBot.Tracks;
 using RightVisionBot.UI;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
-using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -23,9 +20,10 @@ namespace RightVisionBot
 {
     class Program
     {
-        public static volatile List<RvUser> users = new();
         public static readonly ITelegramBotClient botClient = new TelegramBotClient(ConfigReader.Token);
         public static readonly sql database = new(ConfigReader.MySql);
+        public static readonly long MemberGroupId = -1002074764678;
+        public static readonly long CriticGroupId = -1001968408177;
 
         static async Task Main(string[] args)
         {
@@ -137,70 +135,16 @@ namespace RightVisionBot
                             string lowercaseText = message.Text.ToLower();
                             await Document.Handling(botClient, message, rvUser);
                             await General.Commands(botClient, rvUser, update);
-                            if (rvUser.Has(Permission.CriticMenu))
-                                await Critic.Commands(botClient, rvUser, message);
+                            await Critic.Commands(botClient, rvUser, message);
+                            await Admin.Commands(botClient, rvUser, message);
 
-                            switch (rvUser.Role)
+                            if (message.Chat.Type == ChatType.Private && RvUser.Get(userId).RvLocation == RvLocation.EditTrack)
                             {
-                                case Role.Moderator:
-                                case Role.TechAdmin:
-                                case Role.Developer:
-                                case Role.Admin:
-                                    await Admin.Commands(botClient, rvUser, message);
-                                    break;
-                                case Role.Curator:
-                                    break;
-                                case Role.Designer:
-                                    break;
-                                case Role.Translator:
-                                    break;
-                            }
-
-                            switch (lowercaseText)
-                            {
-                                case "//rmkboard":
-                                    if (message.From.Id == 901152811)
-                                    {
-                                        ReplyKeyboardRemove remove = new();
-                                        await botClient.SendTextMessageAsync(message.Chat, "отключено", replyMarkup: remove);
-                                    }
-                                    break;
-                                default:
-                                    if (message.Chat.Type == ChatType.Private)
-                                    {
-                                        if (RvUser.Get(userId).RvLocation == RvLocation.EditTrack)
-                                        {
-                                            RvMember.Get(userId).TrackStr = message.Text;
-                                            database.Read($"UPDATE `RV_C{RvMember.Get(userId).Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
-                                            await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
-                                            await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
-                                            await UserProfile.Profile(message);
-                                        }
-                                    }
-                                    break;
-                            }
-
-                            if (rvUser != null)
-                            {
-                                if (message.Text.StartsWith("link ") && message.From.Id == 901152811)
-                                {
-                                    var args = message.Text.Split(" ");
-
-                                    var idAsList = database.Read($"SELECT `userId` FROM `RV_Tracks` LIMIT 1 OFFSET {int.Parse(args[1]) - 1}", "userId");
-                                    database.Read($"UPDATE `RV_Tracks` SET `link` = '{args[2]}' WHERE `userId` = {idAsList.FirstOrDefault()}", "");
-                                    await botClient.SendTextMessageAsync(message.Chat, "Ссылка успешно привязана!");
-                                    await botClient.SendTextMessageAsync(long.Parse(idAsList.FirstOrDefault()),
-                                            "Уважаемый участник!" +
-                                                  "\nОрганизаторы добавили ссылку на твой ремикс в облаке! Можешь качать и заливать к себе на канал :)" +
-                                                    "\nЧтобы её получить - перейди в свой профиль и нажми \"Получить визуал ремикса\".");
-                                }
-
-                                else if (message.Text.StartsWith("/get "))
-                                {
-                                    string newMessage = message.Text.Replace("/get ", "");
-                                    int value = int.Parse(newMessage);
-                                    Track.SendFilesByOne(botClient, value);
-                                }
+                                RvMember.Get(userId).TrackStr = message.Text;
+                                database.Read($"UPDATE `RV_C{RvMember.Get(userId).Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
+                                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
+                                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
+                                await UserProfile.Profile(message);
                             }
                         }
                     }
@@ -239,8 +183,7 @@ namespace RightVisionBot
                     "");
         }
 
-        public static void updateRvLocation(long userId, RvLocation location) => RvUser.Get(userId).RvLocation = location;
-
+        public static void UpdateRvLocation(long userId, RvLocation location) => RvUser.Get(userId).RvLocation = location;
         public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken) => Console.WriteLine(JsonConvert.SerializeObject(exception));
     }
 }
