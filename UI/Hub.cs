@@ -31,12 +31,12 @@ namespace RightVisionBot.UI
                 rvUser = new()
                 { UserId = userId, Lang = lang };
                 Data.RvUsers.Add(rvUser);
-                var userToDB = $"INSERT INTO `RV_Users` (`id`, `lang`) VALUES ('{rvUser.UserId}', '{rvUser.Lang}')";
+                var userToDB = $"INSERT INTO `RV_Users` (`userId`, `lang`, `permissions`) VALUES ('{rvUser.UserId}', '{rvUser.Lang}', '{rvUser.PermissionsAsString(rvUser.Permissions)}')";
                 database.Read(userToDB, "");
                 await botClient.SendTextMessageAsync(-4074101060, $"Зарегистрирован новый пользователь @{message.From.Username} с языком {lang}", disableNotification: true);
             }
 
-            string[] langs = new[] { "🇷🇺RU / CIS", "🇺🇦UA", "🇰🇿KZ", "🇬🇧EN" };
+            string[] langs = new[] { "🇷🇺RU / CIS", "🇺🇦UA", "🇰🇿KZ" };
             if (langs.Contains(message.Text))
                 await botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Messages_LanguageSelected", RvUser.Get(userId).Lang), message.Text), replyMarkup: Keyboard.remove);
             await botClient.SendTextMessageAsync(message.Chat, string.Format(Language.GetPhrase("Messages_Greetings", RvUser.Get(userId).Lang), fullName), replyMarkup: Keyboard.Hub(rvUser));

@@ -52,7 +52,9 @@ class PermissionLayouts
             Permission.Rewarding             
         };
 
-        public static HashSet<Permission> Developer = new()
+    public static HashSet<Permission> Empty = new();
+
+    public static HashSet<Permission> Developer = new()
         {
             Permission.Audit
         };

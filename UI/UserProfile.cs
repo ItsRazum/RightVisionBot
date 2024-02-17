@@ -183,14 +183,20 @@ namespace RightVisionBot.UI
             }
         }
 
-        public static async Task PermissionsList(ITelegramBotClient botClient, Update update, RvUser rvUser, string type)
+        public static async Task PermissionsList(CallbackQuery callback, RvUser rvUser, string type)
         {
-            string header = update.CallbackQuery.From.Id == rvUser.UserId
+            string nameInHeader;
+            if (RvCritic.Get(rvUser.UserId) != null)
+                nameInHeader = RvCritic.Get(rvUser.UserId).Name;
+            else if (RvMember.Get(rvUser.UserId) != null)
+                nameInHeader = RvMember.Get(rvUser.UserId).Name;
+            else
+                nameInHeader = callback.From.FirstName;
+
+            string header = callback.From.Id == rvUser.UserId
                 ? Language.GetPhrase("Profile_Permissions_Header", rvUser.Lang)
-                : string.Format(Language.GetPhrase("Profile_Permissions_Header_Global", rvUser.Lang),
-                    RvCritic.Get(update.CallbackQuery.From.Id) != null
-                        ? RvMember.Get(rvUser.UserId).Name
-                        : RvCritic.Get(rvUser.UserId).Name);
+                : string.Format(Language.GetPhrase("Profile_Permissions_Header_Global", rvUser.Lang), nameInHeader);
+
             int standartCount = 10;
             StringBuilder fullList = new();
             StringBuilder blockedList = new();
@@ -219,7 +225,8 @@ namespace RightVisionBot.UI
                 Role.Curator => Permissions.AddPermissions(layout, PermissionLayouts.Curator),
                 Role.Moderator => Permissions.AddPermissions(layout, PermissionLayouts.Moderator),
                 Role.Developer => Permissions.AddPermissions(layout, PermissionLayouts.Developer),
-                Role.SeniorModerator => Permissions.AddPermissions(layout, PermissionLayouts.SeniorModerator)
+                Role.SeniorModerator => Permissions.AddPermissions(layout, PermissionLayouts.SeniorModerator),
+                _ => PermissionLayouts.Empty
             });
 
             int count = rvUser.Permissions.Count <= standartCount ? rvUser.Permissions.Count : standartCount;
@@ -260,7 +267,7 @@ namespace RightVisionBot.UI
                                        $"{Language.GetPhrase("Profile_Permissions_FullList", rvUser.Lang)}\n{fullList}\n" +
                                        addedFormat +
                                        blockedFormat;
-            await botClient.EditMessageTextAsync(update.CallbackQuery.Message.Chat, update.CallbackQuery.Message.MessageId, permissionsFormat, replyMarkup: keyboard);
+            await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, permissionsFormat, replyMarkup: keyboard);
         }
 
         public static async Task PunishmentsList(ITelegramBotClient botClient, Update update, RvUser rvUser)

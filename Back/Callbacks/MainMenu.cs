@@ -38,24 +38,7 @@ namespace RightVisionBot.Back.Callbacks
                     await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, string.Format(Language.GetPhrase("Messages_Greetings", rvUser.Lang), fullname), replyMarkup: Keyboard.Hub(rvUser));
                     break;
                 case "menu_aboutBot":
-                    await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, "RightVision Bot\n" +
-                        $"Дата сборки: {ConfigReader.BuildDate}\n" +
-                        "Разработчик: @NtRazum\n\n" +
-                        "Переводчики:\n" +
-                        "UA: @crink1337 & @elec7reify\n" +
-                        "KZ: @chrkovsky\n" +
-                        "\nИспользованный стек:\n" +
-                        "- Язык программирования: C#\n" +
-                        "Использованные библиотеки:\n" +
-                        "- Telegram.Bot\n" +
-                        "- MySQL Connector\n" +
-                        "Прочее ПО:\n" +
-                        "- PhpMyAdmin\n" +
-                        "-.NET 7.0\n\n" +
-                        "Особые благодарности:\n" +
-                        "- @Viktor290906 - за перевод старой версии английского языка\n" +
-                        "- @elec7reify - за минимальную, но всё же помощь в разработке\n" +
-                        "- @banan41ck - за рисование аватарки для бота", replyMarkup: Keyboard.BackToAbout(rvUser));
+                    await botClient.EditMessageTextAsync(callback.Message.Chat.Id, callback.Message.MessageId, Program.About, replyMarkup: Keyboard.BackToAbout(rvUser));
                     break;
                 case "menu_profile":
                     if (rvUser.Has(Permission.OpenProfile))

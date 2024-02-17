@@ -47,7 +47,7 @@ namespace RightVisionBot.Back.Callbacks
             }
 
             if (callbackQuery.StartsWith("menu_permissions-"))
-                await UserProfile.PermissionsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("menu_permissions-", ""))), "minimize");
+                await UserProfile.PermissionsList(callback, RvUser.Get(long.Parse(callbackQuery.Replace("menu_permissions-", ""))), "minimize");
 
             else if (callbackQuery.StartsWith("permissions_back-"))
             {
@@ -70,10 +70,10 @@ namespace RightVisionBot.Back.Callbacks
             }
 
             else if (callbackQuery.StartsWith("permissions_minimize-"))
-                await UserProfile.PermissionsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_minimize-", ""))), "minimize");
+                await UserProfile.PermissionsList(callback, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_minimize-", ""))), "minimize");
 
             else if (callbackQuery.StartsWith("permissions_maximize-"))
-                await UserProfile.PermissionsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_maximize-", ""))), "maximize");
+                await UserProfile.PermissionsList(callback, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_maximize-", ""))), "maximize");
 
             else if (callbackQuery.StartsWith("menu_history-"))
                 await UserProfile.PunishmentsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("menu_history-", ""))));

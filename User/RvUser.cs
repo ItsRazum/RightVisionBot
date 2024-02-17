@@ -78,7 +78,7 @@ public class RvUser
 
     private void UpdateDatabase(string property, string value) => Program.database.Read($"UPDATE `RV_Users` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
 
-    private string PermissionsAsString(HashSet<Permission> permission)
+    public string PermissionsAsString(HashSet<Permission> permission)
     {
         StringBuilder sb = new StringBuilder();
         foreach (var perm in permission)
