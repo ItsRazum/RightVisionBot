@@ -5,20 +5,18 @@ using System.Timers;
 using Microsoft.Extensions.Logging;
 using RightVisionBot.Common;
 using RightVisionBot.Tracks;
+using RightVisionBot.Types;
 using RightVisionBot.User;
 
 //система восстановления данных после перезагрузки бота, а также синхронизация с базой данных
 namespace RightVisionBot.Back
 {
-    class Data
+    internal class Data
     {
         public static volatile List<RvUser> RvUsers = new();
-        
-
         public static volatile List<RvCritic> RvCritics = new();
         public static volatile List<RvMember> RvMembers = new();
-
-
+        public static volatile List<RvExMember> RvExMembers = new();
     }
 
     class DataRestorer
@@ -27,86 +25,64 @@ namespace RightVisionBot.Back
 
         public static void RestoreUsers()
         {
+            Language.Build(new[] { "ru", "ua", "kz" });
+
             Console.WriteLine("Восстановление данных...");
             {
-                string[] columns = { "userId", "lang", "status", "rvLocation", "role", "category" };
-                var usersQuery = "SELECT * FROM `RV_Users`";
-                List<Dictionary<string, string>> uRead = database.ExtRead(usersQuery, columns);
+                string[] columns = { "userId", "lang", "status", "rvLocation", "role", "category", "name" };
+                var uRead = database.ExtRead("SELECT * FROM `RV_Users`", columns);
                 int i = 0;
                 foreach (var userDb in uRead)
                 {
-                    var user = new RvUser()
-                    {
-                        UserId = long.Parse(userDb[columns[0]]),
-                        Lang = userDb[columns[1]],
-                        Status = Enum.Parse<Status>(userDb[columns[2]]),
-                        RvLocation = Enum.Parse<RvLocation>(userDb[columns[3]]),
-                        Role = Enum.Parse<Role>(userDb[columns[4]]),
-                        Category = userDb[columns[5]],
-                        Cooldown = new System.Timers.Timer(1)
-                    };
+                    var user = new RvUser
+                    (
+                        long.Parse(userDb[columns[0]]), 
+                        userDb[columns[1]], 
+                        Enum.Parse<Status>(userDb[columns[2]]), 
+                        Enum.Parse<RvLocation>(userDb[columns[3]]), 
+                        Enum.Parse<Role>(userDb[columns[4]]), 
+                        userDb[columns[5]],
+                        userDb[columns[6]],
+                        false
+                    );
                     i++;
                     Data.RvUsers.Add(user);
                 }
-
                 Console.WriteLine($"Данные пользователей восстановлены ({i})\n");
             }
             Console.WriteLine("Восстановление прав доступа...");
             {
-                var permissions = database.ExtRead("SELECT `userId`, `permissions` FROM `RV_Users`;",
+                var users = database.ExtRead("SELECT `userId`, `permissions` FROM `RV_Users`;",
                     new[] { "userId", "permissions" });
-                foreach (var permission in permissions)
+                foreach (var user in users)
                 {
-                    long userId = long.Parse(permission["userId"]);
+                    long userId = long.Parse(user["userId"]);
                     RvUser rvUser = RvUser.Get(userId);
-                    HashSet<Permission> perms = new HashSet<Permission>();
-                    if (permission["permissions"] == "None")
+                    if (user["permissions"] == "None" || user["permissions"] == "")
                     {
-                        switch (rvUser.Status)
-                        {
-                            case Status.User:
-                                perms = PermissionLayouts.User;
-                                break;
-                            case Status.Critic:
-                                perms = PermissionLayouts.Critic;
-                                break;
-                            case Status.Member:
-                                perms = PermissionLayouts.Member;
-                                break;
-                            case Status.CriticAndMember:
-                                perms = PermissionLayouts.CriticAndMember;
-                                break;
-                        }
+                        UserPermissions permissions = new(Permissions.Empty);
 
-                        StringBuilder sb = new StringBuilder();
-                        foreach (var perm in perms)
-                            sb.Append(perm + ";");
-                        database.Read($"UPDATE `RV_Users` SET `Permissions` = '{sb}' WHERE `userId` = {userId}", "");
-                        switch (rvUser.Role)
-                        {
-                            case Role.Admin:
-                                rvUser.AddPermissions(hashSet: PermissionLayouts.Admin);
-                                break;
-                            case Role.Curator:
-                                rvUser.AddPermissions(hashSet: PermissionLayouts.Curator);
-                                break;
-                            case Role.Moderator:
-                                rvUser.AddPermissions(hashSet: PermissionLayouts.Moderator);
-                                break;
-                            case Role.Developer:
-                                rvUser.AddPermissions(hashSet: PermissionLayouts.Developer);
-                                break;
-                        }
+                        permissions += Permissions.Layouts[rvUser.Role] + Permissions.Layouts[rvUser.Status];
+
+                        database.Read($"UPDATE `RV_Users` SET `permissions` = '{rvUser.Permissions}' WHERE `userId` = {userId}", "");
+                        rvUser.Permissions = permissions;
                     }
                     else
                     {
-                        string[] permissionStrings = permission["permissions"].Split(";");
+                        var permissionStrings = user["permissions"].Split(";");
+                        List<Permission> perms = new();
+                        List<Permission> blockedPerms = new();
+                        foreach (var permission in permissionStrings)
+                        {
+                            if (permission == "") continue;
+                            if (!permission.StartsWith("::"))
+                                perms.Add(Enum.Parse<Permission>(permission));
+                            else
+                                blockedPerms.Add(Enum.Parse<Permission>(permission[2..]));
+                        }
 
-                        foreach (var _permission in permissionStrings)
-                            if (_permission != "")
-                                perms.Add(Enum.Parse<Permission>(_permission));
-
-                        RvUser.Get(userId).Permissions = perms;
+                        RvUser.Get(userId).Permissions = new UserPermissions(perms);
+                        RvUser.Get(userId).Permissions.Removed = blockedPerms;
                     }
                 }
 
@@ -145,16 +121,20 @@ namespace RightVisionBot.Back
                 }
             }
             Console.WriteLine("Категории восстановлены\n");
-
+            
             Console.WriteLine("Восстановление наград");
             {
                 var rewards = database.ExtRead("SELECT `userId`, `rewards` FROM `RV_Users`;", new[] { "userId", "rewards" });
                 foreach (var user in rewards)
                 {
-                    string[] rewardStrings = user["rewards"].Split(";");
-                    foreach (var reward in rewardStrings)
-                        if (reward != "" && reward != "None")
-                            RvUser.Get(long.Parse(user["userId"])).AddReward(reward);
+                    var rewardStrings = user["rewards"].Split(";");
+                    foreach (var rewardString in rewardStrings)
+                    {
+                        var rewardValues = rewardString.Split(":");
+                        if (string.IsNullOrEmpty(rewardValues[0])) continue;
+                        Reward reward = new(rewardValues[0], rewardValues[2]);
+                        RvUser.Get(long.Parse(user["userId"])).Rewards.Add(reward);
+                    }
                 }
             }
             Console.WriteLine("Награды восстановлены\n");
@@ -164,33 +144,28 @@ namespace RightVisionBot.Back
                 var punishments = database.ExtRead("SELECT `userId`, `punishments` FROM `RV_Users`;", new[] { "userId", "punishments" });
                 foreach (var user in punishments)
                 {
-                    RvUser rvUser = RvUser.Get(long.Parse(user["userId"]));
+                    var rvUser = RvUser.Get(long.Parse(user["userId"]));
 
-                    string punishmentsString = user["punishments"];
-                    List<RvPunishment> punishmentsList = new List<RvPunishment>();
-                        string[] allPunishments = punishmentsString.Split(",");
+                    var punishmentsString = user["punishments"];
+                        var allPunishments = punishmentsString.Split(",");
 
-                    foreach (string punishment in allPunishments)
+                    foreach (var punishment in allPunishments)
                     {
-                        if (punishment != "")
-                        {
-                            string[] punishmentArgs = punishment.Split(";");
-                            RvPunishment pun = new RvPunishment();
-
-                            pun.Type = Enum.Parse<RvPunishment.PunishmentType>(punishmentArgs[0]);
-                            pun.GroupId = long.Parse(punishmentArgs[1]);
-                            pun.Reason = punishmentArgs[2];
-                            pun.From = DateTime.Parse(punishmentArgs[3], CultureInfo.GetCultureInfo("en-US").DateTimeFormat);
-                            pun.To =   DateTime.Parse(punishmentArgs[4], CultureInfo.GetCultureInfo("en-US").DateTimeFormat);
-
-                            punishmentsList.Add(pun);
-                        }
+                        if (punishment == "") continue;
+                        var punishmentArgs = punishment.Split(";");
+                        RvPunishment pun = new(
+                            Enum.Parse<RvPunishment.PunishmentType>(punishmentArgs[0]),
+                            long.Parse(punishmentArgs[1]),
+                            punishmentArgs[2],
+                            DateTime.Parse(punishmentArgs[3], CultureInfo.GetCultureInfo("en-US").DateTimeFormat),
+                            DateTime.Parse(punishmentArgs[4], CultureInfo.GetCultureInfo("en-US").DateTimeFormat)
+                        );
+                        rvUser.Punishments.Add(pun);
                     }
-                    rvUser.Punishments = punishmentsList;
                 }
             }
             Console.WriteLine("Наказания восстановлены\n");
-
+            
             Console.WriteLine("Восстановление данных судей...");
             {
                 string[] columns = { "name", "telegram", "userId", "link", "rate", "about", "whyyou", "curator", "status", "prelisteningartist" };
@@ -199,52 +174,75 @@ namespace RightVisionBot.Back
                 int i = 0;
                 foreach (var userDb in uRead)
                 {
-                    var critic = new RvCritic
-                    {
-                        UserId = long.Parse(userDb[columns[2]]),
-                        Curator = long.Parse(userDb[columns[7]]),
-                        PreListeningArtist = long.Parse(userDb[columns[9]]),
-                        Name = userDb[columns[0]],
-                        Telegram = userDb[columns[1]],
-                        Link = userDb[columns[3]],
-                        Rate = userDb[columns[4]],
-                        About = userDb[columns[5]],
-                        WhyYou = userDb[columns[6]],
-                        Status = userDb[columns[8]],
-                    };
+                    _ = new RvCritic
+                        (
+                            long.Parse(userDb[columns[2]]),
+                            userDb[columns[0]],
+                            userDb[columns[1]],
+                            userDb[columns[3]],
+                            userDb[columns[4]],
+                            userDb[columns[5]],
+                            userDb[columns[6]],
+                            long.Parse(userDb[columns[7]]),
+                            userDb[columns[8]],
+                            long.Parse(userDb[columns[9]])
+                        );
                     i++;
-                    Data.RvCritics.Add(critic);
                 }
 
                 Console.WriteLine($"Данные судей восстановлены ({i})\n");
             }
             Console.WriteLine("Восстановление данных участников...");
             {
-                string[] columns = { "name", "telegram", "userId", "country", "city", "link", "rate", "track", "curator", "status" };
+                string[] columns = { "name", "telegram", "userId", "link", "rate", "track", "curator", "status" };
                 var usersQuery = "SELECT * FROM `RV_Members`";
                 var uRead = database.ExtRead(usersQuery, columns);
                 int i = 0;
                 foreach (var userDb in uRead)
                 {
-                    var member = new RvMember
-                    {
-                        UserId = long.Parse(userDb[columns[2]]),
-                        Curator = long.Parse(userDb[columns[8]]),
-                        Name = userDb[columns[0]],
-                        Telegram = userDb[columns[1]],
-                        Country = userDb[columns[3]],
-                        City = userDb[columns[4]],
-                        Link = userDb[columns[5]],
-                        Rate = userDb[columns[6]],
-                        TrackStr = userDb[columns[7]],
-                        Status = userDb[columns[9]]
-                    };
+                    _ = new RvMember
+                        (
+                            long.Parse(userDb[columns[2]]), 
+                            userDb[columns[0]], 
+                            userDb[columns[1]], 
+                            userDb[columns[3]], 
+                            userDb[columns[4]], 
+                            userDb[columns[5]], 
+                            long.Parse(userDb[columns[6]]), 
+                            userDb[columns[7]]
+                        );
                     i++;
-                    Data.RvMembers.Add(member);
+                    RvUser.Get(long.Parse(userDb[columns[2]])).Name = userDb[columns[0]];
                 }
 
                 Console.WriteLine($"Данные участников восстановлены ({i})\n");
             }
+
+            Console.WriteLine("Восстановление данных бывших участников...");
+            {
+                string[] columns = { "name", "telegram", "userId", "link", "rate", "track", "curator", "status" };
+                var usersQuery = "SELECT * FROM `RV_ExMembers`";
+                var uRead = database.ExtRead(usersQuery, columns);
+                int i = 0;
+                foreach (var userDb in uRead)
+                {
+                    _ = new RvExMember
+                    (
+                        long.Parse(userDb[columns[2]]),
+                        userDb[columns[0]],
+                        userDb[columns[1]],
+                        userDb[columns[3]],
+                        userDb[columns[4]],
+                        userDb[columns[5]],
+                        long.Parse(userDb[columns[6]]),
+                        userDb[columns[7]]
+                    );
+                    i++;
+                }
+
+                Console.WriteLine($"Данные бывших участников восстановлены ({i})\n");
+            }
+
             Console.WriteLine("Актуализация данных в общей таблице");
             {
                 var idList = database.Read("SELECT `userId` FROM `RV_Users`;", "userId");
@@ -252,24 +250,46 @@ namespace RightVisionBot.Back
                 {
                     long id = long.Parse(ids);
                     var fromCritics = database.Read(
-                            $"SELECT `userId` FROM `RV_Critics` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
-                            "userId").FirstOrDefault();
+                            $"SELECT `status` FROM `RV_Critics` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
+                            "status").FirstOrDefault();
                     var fromMembers = database.Read(
-                            $"SELECT `userId` FROM `RV_Members` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
-                            "userId").FirstOrDefault();
+                            $"SELECT `status` FROM `RV_Members` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
+                            "status").FirstOrDefault();
+                    var fromExMembers = database.Read(
+                        $"SELECT `status` FROM `RV_ExMembers` WHERE `userId` = {id} AND `status` != 'denied' AND `status` != 'waiting' AND `status` != 'unfinished';",
+                        "status").FirstOrDefault();
 
                     if (fromMembers != null && fromCritics == null)
+                    {
                         RvUser.Get(id).Status = Status.Member;
-                    else if (fromMembers == null && fromCritics != null)
+                        RvUser.Get(id).Category = fromMembers;
+                    }
+                    else if (fromMembers == null && fromCritics != null && fromExMembers == null)
+                    {
                         RvUser.Get(id).Status = Status.Critic;
+                        RvUser.Get(id).Category = fromCritics;
+                    }
                     else if (fromMembers != null && fromCritics != null)
+                    {
                         RvUser.Get(id).Status = Status.CriticAndMember;
+                        RvUser.Get(id).Category = fromMembers;
+                    }
+                    else if (fromExMembers != null && fromCritics == null && fromMembers == null)
+                    {
+                        RvUser.Get(id).Status = Status.ExMember;
+                        RvUser.Get(id).Category = fromExMembers;
+                    }
+                    else if (fromExMembers != null && fromCritics != null && fromMembers == null)
+                    {
+                        RvUser.Get(id).Status = Status.CriticAndExMember;
+                        RvUser.Get(id).Category = fromExMembers;
+                    }
                     else
                         RvUser.Get(id).Status = Status.User;
                 }
-
                 Console.WriteLine("Актуализация завершена\n");
             }
+            /*
             Console.WriteLine("Завершено. Восстановление карточек треков участников...");
             {
                 string[] columns = { "userId", "track", "image", "text" };
@@ -284,13 +304,13 @@ namespace RightVisionBot.Back
                         Image = string.IsNullOrEmpty(card[columns[2]]) ? null : card[columns[2]],
                         Text =  string.IsNullOrEmpty(card[columns[3]]) ? null : card[columns[3]]
                     };
-                    RvMember.Get(trackCard.UserId).Track = trackCard; 
+                    RvMember.Get(trackCard.UserId).Track = trackCard;
                     i++;
                 }
 
                 Console.WriteLine($"Восстановлено {i} карточек\n");
             }
-
+            */
             Console.WriteLine("Восстановление оценок судей");
             {
                 var rates = database.ExtRead($"SELECT * FROM `RV_Rates`;",
@@ -316,7 +336,7 @@ namespace RightVisionBot.Back
 
             Console.WriteLine("Актуализация данных в таблицах рейтинга треков");
             {
-                string[] categories = { "bronze", "steel", "gold", "brilliant" };
+                string[] categories = { "bronze", "silver", "gold", "brilliant" };
 
                 foreach (var category in categories)
                 {

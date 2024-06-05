@@ -10,6 +10,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using RightVisionBot.Rating;
 using Admin = RightVisionBot.Back.Commands.Admin.Admin;
 using Critic = RightVisionBot.Back.Commands.Critic;
 using Document = RightVisionBot.Back.Document;
@@ -54,13 +55,6 @@ namespace RightVisionBot
                     cts.Cancel();
                     break;
                 }
-                else if (command == "restart")
-                {
-                    Console.WriteLine("Начался процесс перезапуска...\n");
-                    cts.Cancel();
-                    await Main(args);
-                    break;
-                }
             }
         }
 
@@ -71,9 +65,10 @@ namespace RightVisionBot
                 Console.WriteLine(JsonConvert.SerializeObject(update));
                 if (update.CallbackQuery != null)
                 {
-                    var callback = update.CallbackQuery;
+                    CallbackQuery? callback = update.CallbackQuery;
                     RvUser rvUser = RvUser.Get(callback.From.Id);
 
+                    // Обработка входящих Callback'ов от сервера
                     if (!rvUser.Cooldown.Enabled && rvUser.Has(Permission.Messaging) && rvUser.RvLocation != RvLocation.Blacklist)
                     {
                         if (callback.Data.StartsWith("c_"))
@@ -85,17 +80,19 @@ namespace RightVisionBot
                         else if (callback.Data.StartsWith("r_") || callback.Data.StartsWith("change"))
                             await Callbacks.Evaluation.Callbacks(botClient, update);
                         else if (callback.Data.StartsWith("h_"))
-                            await Callbacks.Admin.Callbacks(botClient, update,
-                                RvUser.Get(update.CallbackQuery.From.Id));
+                            await Callbacks.Admin.Callbacks(botClient, update, RvUser.Get(update.CallbackQuery.From.Id));
                         else if (callback.Data.StartsWith("menu_") || callback.Data.StartsWith("permissions_"))
                             await Callbacks.MainMenu.Callbacks(botClient, update, rvUser);
                     }
-                    else
+                    else // Антиспам система
                         await botClient.AnswerCallbackQueryAsync(callback.Id, "Пожалуйста, не надо спамить! Если будешь продолжать - для тебя включится медленный режим, который может увеличиться вплоть до 10 секунд!", showAlert: true);
                 }
-                Message message = update.Message;
+                Message? message = update.Message;
                 if (message != null)
                 {
+                    // Система защиты от несанкционированного доступа в группу
+                    // Пример: если пользователь подал заявку на участие, и её приняли - он получает право Permission.MemberChat
+                    // Permission.MemberChat позволяет находиться в группе для участников. Если этого права нету - бот кикает пользователя из группы
                     if (message.NewChatMembers != null)
                     {
                         string kickMessage = "Обнаружена попытка неавторизованного пользователя зайти в группу с ограниченным доступом! Удаляю его...";
@@ -103,23 +100,24 @@ namespace RightVisionBot
                         var chatId = message.Chat.Id;
                         switch (chatId)
                         {
-                            case -1002074764678:
-                                if ((RvMember.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.MemberChat)) && RvUser.Get(message.From.Id).Role != Role.Admin)
+                            case -1002074764678: //Группа участников 
+                                if (!RvUser.Get(newUserId).Has(Permission.MemberChat))
                                 {
                                     await botClient.SendTextMessageAsync(message.Chat, kickMessage);
-                                    await botClient.BanChatMemberAsync(message.Chat, newUserId);
+                                    await botClient.BanChatMemberAsync(message.Chat, newUserId, DateTime.Now.AddMinutes(1));
                                 }
                                 break;
-                            case -1001968408177:
-                                if ((RvCritic.Get(newUserId) == null || RvUser.Get(newUserId).Has(Permission.CriticChat)) && RvUser.Get(message.From.Id).Role != Role.Admin)
+                            case -1001968408177: //Группа судей
+                                if (!RvUser.Get(newUserId).Has(Permission.CriticChat))
                                 {
                                     await botClient.SendTextMessageAsync(message.Chat, kickMessage);
-                                    await botClient.BanChatMemberAsync(message.Chat, newUserId);
+                                    await botClient.BanChatMemberAsync(message.Chat, newUserId, DateTime.Now.AddMinutes(1));
                                 }
                                 break;
                         }
                     }
 
+                    // Обработка текстовых сообщений
                     if (message.From != null)
                     {
                         long userId = message.From.Id;
@@ -133,8 +131,7 @@ namespace RightVisionBot
                         if (message.Text != null && rvUser != null && rvUser.Has(Permission.Messaging) && rvUser.RvLocation != RvLocation.Blacklist)
                         {
                             string lowercaseText = message.Text.ToLower();
-                            await Document.Handling(botClient, message, rvUser);
-                            await General.Commands(botClient, rvUser, update);
+                            await General.Commands(botClient, rvUser, message);
                             await Critic.Commands(botClient, rvUser, message);
                             await Admin.Commands(botClient, rvUser, message);
 
@@ -144,7 +141,7 @@ namespace RightVisionBot
                                 database.Read($"UPDATE `RV_C{RvMember.Get(userId).Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
                                 await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
                                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
-                                await UserProfile.Profile(message);
+                                await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(rvUser, message));
                             }
                         }
                     }
@@ -161,29 +158,38 @@ namespace RightVisionBot
         public static bool StringExists(string TableName, long userId) =>
             database.Read($"select * FROM `{TableName}` WHERE `userId` = {userId}", "userId").FirstOrDefault() != null;
 
+        // Вспомогательный процедурный метод. Вызывается, когда нужно обновить статус пользователя
         public static void UpdateStatus(long id)
         {
-            var fromCritics = database.Read(
-                $"SELECT `userId` FROM `RV_Critics` WHERE `userId` = {id};",
-                "userId");
-            var fromMembers = database.Read(
-                $"SELECT `userId` FROM `RV_Members` WHERE `userId` = {id};",
-                "userId");
-            if (fromMembers.FirstOrDefault() != null && fromCritics.FirstOrDefault() == null)
-                database.Read(
-                    $"UPDATE `RV_Users` SET `status` = 'member' WHERE `userId` = {id};",
-                    "");
-            else if (fromMembers.FirstOrDefault() == null && fromCritics.FirstOrDefault() != null)
-                database.Read(
-                    $"UPDATE `RV_Users` SET `status` = 'critic' WHERE `userId` = {id};",
-                    "");
-            else if (fromMembers.FirstOrDefault() != null && fromCritics.FirstOrDefault() != null)
-                database.Read(
-                    $"UPDATE `RV_Users` SET `status` = 'criticAndMember' WHERE `userId` = {id};",
-                    "");
+            if (RvMember.Get(id) != null && RvCritic.Get(id) != null)
+                RvUser.Get(id).Status = Status.CriticAndMember;
+            else if (RvMember.Get(id) != null)
+                RvUser.Get(id).Status = Status.Member;
+            else if (RvCritic.Get(id) != null)
+                RvUser.Get(id).Status = Status.Critic;
         }
 
         public static void UpdateRvLocation(long userId, RvLocation location) => RvUser.Get(userId).RvLocation = location;
         public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken) => Console.WriteLine(JsonConvert.SerializeObject(exception));
+
+        public static string About = "RightVision Bot\n" +
+                               $"Дата сборки: {ConfigReader.BuildDate}\n" +
+                               "Разработчик: @NtRazum\n\n" +
+                               "Переводчики:\n" +
+                               "UA: @crink1337 & @elec7reify\n" +
+                               "KZ: @chrkovsky\n" +
+                               "\nПрограммный стек:\n" +
+                               "- Язык программирования: C#\n" +
+                               "- GitHub: https://github.com/ItsRazum/RightVisionBot\n" +
+                               "Использованные библиотеки:\n" +
+                               "- Telegram.Bot\n" +
+                               "- MySQL.Data\n" +
+                               "Прочее ПО:\n" +
+                               "- PhpMyAdmin\n" +
+                               "- .NET 8.0\n\n" +
+                               "Особые благодарности:\n" +
+                               "- @Viktor290906 - за перевод старой версии английского языка\n" +
+                               "- @elec7reify - за минимальную, но всё же помощь в разработке\n" +
+                               "- @banan41ck - за рисование аватарки для бота";
     }
 }

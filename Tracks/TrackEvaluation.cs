@@ -22,44 +22,19 @@ namespace RightVisionBot.Tracks
         public long UserId;
 
         private long _artistId = 0;
-        public long ArtistId { get => _artistId; set { _artistId = value; newLong(value, nameof(ArtistId)); } }
+        public long ArtistId { get => _artistId; set { _artistId = value; NewLong(value, nameof(ArtistId)); } }
         private int _general = 0;
-        public int General { get => _general; set { _general = value; newLong(value, nameof(General)); } }
+        public int General { get => _general; set { _general = value; NewLong(value, nameof(General)); } }
         private int _rate1 = 0;
-        public int Rate1 { get => _rate1; set { _rate1 = value; newLong(value, nameof(Rate1)); } }
+        public int Rate1 { get => _rate1; set { _rate1 = value; NewLong(value, nameof(Rate1)); } }
         private int _rate2 = 0;
-        public int Rate2 { get => _rate2; set { _rate2 = value; newLong(value, nameof(Rate2)); } }
+        public int Rate2 { get => _rate2; set { _rate2 = value; NewLong(value, nameof(Rate2)); } }
         private int _rate3 = 0;
-        public int Rate3 { get => _rate3; set { _rate3 = value; newLong(value, nameof(Rate3)); } }
+        public int Rate3 { get => _rate3; set { _rate3 = value; NewLong(value, nameof(Rate3)); } }
         private int _rate4 = 0;
-        public int Rate4 { get => _rate4; set { _rate4 = value; newLong(value, nameof(Rate4)); } }
+        public int Rate4 { get => _rate4; set { _rate4 = value; NewLong(value, nameof(Rate4)); } }
 
-        private string newString(string value, string property)
-        {
-            _OnPropertyChanged(property, value);
-            return value;
-        }
-
-        private long newLong(long value, string property)
-        {
-            newString(value.ToString(), property);
-            return value;
-        }
-
-        public event Action<string> OnPropertyChanged = delegate { };
-
-        private void _OnPropertyChanged(string property, string value)
-        {
-            OnPropertyChanged(property);
-            UpdateDatabase(property, value);
-        }
-
-        private void UpdateDatabase(string property, string value)
-        {
-            sql database = Program.database;
-            database.Read($"UPDATE `RV_Rates` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
-        }
-
+        private void NewLong(long value, string property) => Program.database.Read($"UPDATE `RV_Rates` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
     }
 
     class TrackEvaluation
@@ -116,7 +91,7 @@ namespace RightVisionBot.Tracks
                                                              "\n3. Смысловая продуманность" +
                                                              "\n4. Общее звучание" +
                                                              "\n\nКогда ты начнёшь - я скину тебе первый свободный трек, и ты поочерёдно через инлайн-кнопки выставишь ему все оценки!", replyMarkup: actions);
-                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.Message.From.Username} открыл меню оценивания\n=====\nId:{callback.Message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} открыл меню оценивания\n=====\nId:{callback.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
 
             }
             else
@@ -198,43 +173,27 @@ namespace RightVisionBot.Tracks
             {
                 case "change1":
                     vote.Rate1 = 0;
-                    botClient.EditMessageTextAsync(
-                        chatId: callback.Message.Chat,
-                        messageId: update.CallbackQuery.Message.MessageId,
-                        text: ChangeStringRate(callback.From.Id, vote),
-                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
                 case "change2":
                     vote.Rate2 = 0;
-                    botClient.EditMessageTextAsync(
-                        chatId: callback.Message.Chat,
-                        messageId: update.CallbackQuery.Message.MessageId,
-                        text: ChangeStringRate(callback.From.Id, vote),
-                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
                 case "change3":
                     vote.Rate3 = 0;
-                    botClient.EditMessageTextAsync(
-                        chatId: callback.Message.Chat,
-                        messageId: update.CallbackQuery.Message.MessageId,
-                        text: ChangeStringRate(callback.From.Id, vote),
-                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
                 case "change4":
                     vote.Rate4 = 0;
-                    botClient.EditMessageTextAsync(
-                        chatId: callback.Message.Chat,
-                        messageId: update.CallbackQuery.Message.MessageId,
-                        text: ChangeStringRate(callback.From.Id, vote),
-                        replyMarkup: RatingSystem(callback.From.Id));
                     break;
             }
+            botClient.EditMessageTextAsync(
+                chatId: callback.Message.Chat,
+                messageId: update.CallbackQuery.Message.MessageId,
+                text: ChangeStringRate(callback.From.Id, vote),
+                replyMarkup: RatingSystem(callback.From.Id));
         }
 
         public static async Task NextTrack(ITelegramBotClient botClient, CallbackQuery callback, CriticVote vote)
         {
-            ReplyKeyboardMarkup back = new(new[]
-                    { new[] { new KeyboardButton("Назад") } })
+            ReplyKeyboardMarkup back = new(new[] { new[] { new KeyboardButton("Назад") } })
             { ResizeKeyboard = true };
             long userId = callback.From.Id;
             var artistId = database.Read($"SELECT `userId` FROM `RV_C{RvCritic.Get(userId).Status}` WHERE `status` = 'ok' AND `userId` != {userId} AND `{userId}` = -1 LIMIT 1", "userId").FirstOrDefault();

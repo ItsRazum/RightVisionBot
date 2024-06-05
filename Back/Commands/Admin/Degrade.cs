@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RightVisionBot.Types;
 using Telegram.Bot.Types;
 using Telegram.Bot;
 using RightVisionBot.User;
@@ -16,17 +17,10 @@ namespace RightVisionBot.Back.Commands.Admin
         {
             if (_rvUser.Has(Permission.Degrade))
             {
-                RvUser rvUser;
-                rvUser = RvUser.Get(message.ReplyToMessage != null ? message.ReplyToMessage.From.Id : long.Parse(message.Text.Replace("разжаловать", "")));
+                RvUser rvUser = RvUser.Get(message.ReplyToMessage != null ? message.ReplyToMessage.From.Id : long.Parse(message.Text.Replace("разжаловать ", "")));
 
-                rvUser.Permissions = rvUser.Status switch
-                {
-                    Status.Critic =>          PermissionLayouts.Critic,
-                    Status.Member =>          PermissionLayouts.Member,
-                    Status.CriticAndMember => PermissionLayouts.CriticAndMember,
-                    _ => PermissionLayouts.User,
-                };
                 rvUser.Role = Common.Role.None;
+                rvUser.Permissions = new UserPermissions(Permissions.Layouts[rvUser.Status]);
 
                 await botClient.SendTextMessageAsync(message.Chat, "Пользователь разжалован!");
                 await botClient.SendTextMessageAsync(rvUser.UserId, "Уважаемый пользователь!\nК сожалению, ты был разжалован со своей должности.");
@@ -49,7 +43,7 @@ namespace RightVisionBot.Back.Commands.Admin
                         rvUser = RvUser.Get(message.ReplyToMessage.From.Id);
                         deletedPermission = Enum.Parse<Permission>(message.Text.Replace("-permission ", ""));
                         if (rvUser.Has(deletedPermission))
-                            rvUser.RemovePermission(deletedPermission);
+                            rvUser.Permissions.Remove(deletedPermission);
                     }
                     else
                     {
@@ -57,7 +51,7 @@ namespace RightVisionBot.Back.Commands.Admin
                         rvUser = RvUser.Get(long.Parse(args[0]));
                         deletedPermission = Enum.Parse<Permission>(args[1]);
                         if (rvUser.Has(deletedPermission))
-                            rvUser.RemovePermission(deletedPermission);
+                            rvUser.Permissions -= deletedPermission;
                     }
 
                     if (deletedPermission == Permission.MemberChat)

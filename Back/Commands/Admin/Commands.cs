@@ -27,7 +27,7 @@ namespace RightVisionBot.Back.Commands.Admin
                     if (message.From.Id == 901152811 && message.ReplyToMessage.From != null)
                         if (!RvUser.Get(message.ReplyToMessage.From.Id).Has(Permission.Curate))
                         {
-                            RvUser.Get(message.ReplyToMessage.From.Id).AddPermissions(array: new [] { Permission.Curate });
+                            RvUser.Get(message.ReplyToMessage.From.Id).Permissions.Add(Permission.Curate);
                             await botClient.SendTextMessageAsync(message.Chat, "Пользователь авторизован. Теперь он может брать кураторство над кандидатами (судьи и участники)");
                         }
                         else

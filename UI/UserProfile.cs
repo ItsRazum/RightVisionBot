@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RightVisionBot.Back;
 using RightVisionBot.Common;
+using RightVisionBot.Types;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -19,46 +20,42 @@ namespace RightVisionBot.UI
 {
     class UserProfile
     {
-        public static ITelegramBotClient botClient = Program.botClient;
-        public static sql database = Program.database;
+        public static ITelegramBotClient BotClient = Program.botClient;
+        public static sql Database = Program.database;
 
-        public static async Task Profile(Message message)
+        public static string Profile(Message message)
         {
-            long userId = message.From.Id;
-            long getId = message.ReplyToMessage == null ? userId : message.ReplyToMessage.From.Id;
+            if (message.From != null)
+            {
+                var userId = message.From.Id;
+                var getId = message.ReplyToMessage == null ? userId : message.ReplyToMessage.From.Id;
+                var rvUser = RvUser.Get(getId);
 
-            InlineKeyboardMarkup keyboard = Keyboard.ProfileOptions(RvUser.Get(getId), message);
-            RvUser rvUser = RvUser.Get(getId);
-            if (message.Chat.Type == ChatType.Private)
-                Program.UpdateRvLocation(userId, RvLocation.Profile);
-            await botClient.SendTextMessageAsync(message.Chat, ProfileFormat(message, rvUser), replyMarkup: keyboard);
+                if (message.Chat.Type == ChatType.Private)
+                {
+                    Program.UpdateRvLocation(userId, RvLocation.Profile);
+                    return rvUser.ProfilePrivate();
+                }
+                else
+                    return rvUser.ProfilePublic();
+            }
+            return string.Empty;
         }
 
-        private static string GetSendingStatus(Message message, RvUser rvUser)
-        {
-            if (message.Chat.Type == ChatType.Private)
-                return Language.GetPhrase(!rvUser.Permissions.Contains(Permission.Sending) ? "Profile_Sending_Status_Inactive" : "Profile_Sending_Status_Active", rvUser.Lang);
-            else
-                return string.Empty;
-        }
-
-        private static string RequestTrackAccess(Message message)
-            => message.ReplyToMessage == null ? RvMember.Get(message.From.Id).TrackStr : RvMember.Get(message.ReplyToMessage.From.Id).TrackStr;
-
-        private static string GetCandidateStatus(long userId, string role)
+        public static string GetCandidateStatus(long userId, string role)
         {
             try
             {
                 var query = $"SELECT `status` FROM RV_{role}s WHERE `userId` = {userId};";
-                var IdList = database.Read(query, "status");
-                return IdList.FirstOrDefault() switch
+                var idList = Database.Read(query, "status");
+                return idList.FirstOrDefault() switch
                 {
                     "denied" => Language.GetPhrase("Profile_Form_Status_Blocked", RvUser.Get(userId).Lang),
                     "waiting" => Language.GetPhrase("Profile_Form_Status_Waiting", RvUser.Get(userId).Lang),
                     "unfinished" => Language.GetPhrase("Profile_Form_Status_Unfinished", RvUser.Get(userId).Lang),
                     null => Language.GetPhrase("Profile_Form_Status_Allowed", RvUser.Get(userId).Lang),
                     "bronze" => Language.GetPhrase("Profile_Form_Status_Accepted", RvUser.Get(userId).Lang),
-                    "steel" => Language.GetPhrase("Profile_Form_Status_Accepted", RvUser.Get(userId).Lang),
+                    "silver" => Language.GetPhrase("Profile_Form_Status_Accepted", RvUser.Get(userId).Lang),
                     "gold" => Language.GetPhrase("Profile_Form_Status_Accepted", RvUser.Get(userId).Lang),
                     "brilliant" => Language.GetPhrase("Profile_Form_Status_Accepted", RvUser.Get(userId).Lang),
                     _ => Language.GetPhrase("Profile_Form_Status_UnderConsideration", RvUser.Get(userId).Lang)
@@ -70,118 +67,15 @@ namespace RightVisionBot.UI
             }
         }
 
-        private static string GetFormsStatus(Message message)
-        {
-            if (message.Chat.Type == ChatType.Private)
-            {
-                long userId = message.From.Id;
-                return string.Format(Language.GetPhrase("Profile_Forms", RvUser.Get(userId).Lang),
-                    GetCandidateStatus(userId, "Member"),
-                    GetCandidateStatus(userId, "Critic"));
-            }
-            else
-                return string.Empty;
-        }
-
-        private static string RoleFormat(RvUser rvUser) =>
-            rvUser.Role == Role.None
-                ? GetUserStatus(rvUser)
-                : GetUserStatus(rvUser) + "\n" + string.Format(Language.GetPhrase("Profile_Role", rvUser.Lang), RoleAsString(rvUser));
-
-        private static string GetUserStatus(RvUser rvUser)
-        {
-            return rvUser.Status switch
-            {
-                Status.Member => Language.GetPhrase("Profile_Member_Header", rvUser.Lang),
-                Status.Critic => Language.GetPhrase("Profile_Critic_Header", rvUser.Lang),
-                Status.CriticAndMember => Language.GetPhrase("Profile_CriticAndMember_Header", rvUser.Lang),
-                _ => Language.GetPhrase("Profile_User_Layout", rvUser.Lang)
-            };
-        }
-
-        private static string RoleAsString(RvUser rvUser)
-            => rvUser.Role switch
-            {
-                Role.Admin => Language.GetPhrase("Profile_Role_Admin", rvUser.Lang),
-                Role.Moderator => Language.GetPhrase("Profile_Role_Moderator", rvUser.Lang),
-                Role.TechAdmin => Language.GetPhrase("Profile_Role_TechAdmin", rvUser.Lang),
-                Role.Developer => Language.GetPhrase("Profile_Role_Developer", rvUser.Lang),
-                Role.Curator => Language.GetPhrase("Profile_Role_Curator", rvUser.Lang),
-                Role.Designer => Language.GetPhrase("Profile_Role_Designer", rvUser.Lang),
-                Role.Translator => Language.GetPhrase("Profile_Role_Translator", rvUser.Lang),
-                Role.SeniorModerator => Language.GetPhrase("Profile_Role_SeniorModerator", rvUser.Lang),
-                _ => string.Empty
-            };
-
-        private static string CategoryFormat(long userId)
-            => RvUser.Get(userId).Category switch
+        public static string CategoryFormat(string category)
+            => category switch
             {
                 "bronze" => "🥉Bronze",
-                "steel" => "🥈Steel",
+                "silver" => "🥈Silver",
                 "gold" => "🥇Gold",
                 "brilliant" => "💎Brilliant",
                 _ => string.Empty
             };
-
-        private static string RewardsFormat(RvUser rvUser)
-        {
-            string header = Language.GetPhrase("Profile_Form_Rewards", rvUser.Lang);
-            StringBuilder sb = new StringBuilder();
-            if (rvUser.Rewards.FirstOrDefault() == null)
-                return "\n" + header + "Кажется, здесь ничего нет!";
-            else
-            {
-                foreach (var dictionary in rvUser.Rewards)
-                    foreach (var reward in dictionary)
-                        sb.Append("|" + reward.Value + "\n");
-
-                return "\n" + header + sb;
-            }
-        }
-
-        public static string ProfileFormat(Message message, RvUser rvUser)
-        {
-            long userId = message.From.Id;
-            string lang = RvUser.Get(userId).Lang;
-            long getId = message.ReplyToMessage == null ? userId : message.ReplyToMessage.From.Id;
-            string sending = message.Chat.Type == ChatType.Private ? string.Format(Language.GetPhrase("Profile_Sending_Status", lang), GetSendingStatus(message, rvUser)) : string.Empty;
-            string optional = sending + GetFormsStatus(message) + RewardsFormat(rvUser);
-            string header = message.ReplyToMessage == null
-                ? Language.GetPhrase("Profile_Private_Header", lang)
-                : string.Format(Language.GetPhrase("Profile_Global_Header", lang),
-                    RvCritic.Get(message.ReplyToMessage.From.Id) == null
-                        ? RvMember.Get(message.ReplyToMessage.From.Id).Name
-                        : RvCritic.Get(message.ReplyToMessage.From.Id).Name);
-
-            switch (rvUser.Status)
-            {
-                case Status.User:
-                    return header + RoleFormat(rvUser) + optional;
-
-                case Status.Member:
-                    string memberLayout = string.Format("\n" + Language.GetPhrase("Profile_Member_Layout", lang),
-                        /*0*/CategoryFormat(getId),
-                        /*1*/RvMember.Get(getId).Country,
-                        /*2*/RvMember.Get(getId).City,
-                        /*3*/RequestTrackAccess(message)) + optional;
-                    return header + RoleFormat(rvUser) + memberLayout;
-
-                case Status.Critic:
-                    string criticLayout = string.Format("\n" + Language.GetPhrase("Profile_Critic_Layout", lang),
-                        /*0*/CategoryFormat(getId)) + optional;
-                    return header + RoleFormat(rvUser) + criticLayout;
-
-                case Status.CriticAndMember:
-                    string criticAndMemberLayout = string.Format("\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", lang),
-                        /*0*/CategoryFormat(getId),
-                        /*1*/RvMember.Get(getId).Country,
-                        /*2*/RvMember.Get(getId).City,
-                        /*3*/RequestTrackAccess(message)) + optional;
-                    return header + RoleFormat(rvUser) + criticAndMemberLayout;
-                default:
-                    return "Неизвестная ошибка";
-            }
-        }
 
         public static async Task PermissionsList(CallbackQuery callback, RvUser rvUser, string type)
         {
@@ -193,43 +87,24 @@ namespace RightVisionBot.UI
             else
                 nameInHeader = callback.From.FirstName;
 
-            string header = callback.From.Id == rvUser.UserId
+            var header = callback.From.Id == rvUser.UserId
                 ? Language.GetPhrase("Profile_Permissions_Header", rvUser.Lang)
                 : string.Format(Language.GetPhrase("Profile_Permissions_Header_Global", rvUser.Lang), nameInHeader);
 
-            int standartCount = 10;
+            var standartCount = 10;
             StringBuilder fullList = new();
             StringBuilder blockedList = new();
             StringBuilder addedList = new();
-            HashSet<Permission> blockedPerms = new();
-            HashSet<Permission> addedPerms = new();
-            HashSet<Permission> layout = new();
+            UserPermissions blockedPerms = new();
+            UserPermissions addedPerms = new();
             var minimize = Keyboard.Minimize(rvUser);
             var maximize = Keyboard.Maximize(rvUser);
             var back = Keyboard.PermissionsBack(rvUser);
-            InlineKeyboardMarkup keyboard = type == "maximize" ? minimize : maximize;
+            var keyboard = type == "maximize" ? minimize : maximize;
             if (rvUser.Permissions.Count < 10)
                 keyboard = back;
 
-            layout = rvUser.Status switch
-            {
-                Status.Critic => PermissionLayouts.Critic,
-                Status.CriticAndMember => PermissionLayouts.CriticAndMember,
-                Status.Member => PermissionLayouts.Member,
-                _ => PermissionLayouts.User
-            };
-
-            layout = Permissions.AddPermissions(layout, rvUser.Role switch
-            {
-                Role.Admin => Permissions.AddPermissions(layout, PermissionLayouts.Admin),
-                Role.Curator => Permissions.AddPermissions(layout, PermissionLayouts.Curator),
-                Role.Moderator => Permissions.AddPermissions(layout, PermissionLayouts.Moderator),
-                Role.Developer => Permissions.AddPermissions(layout, PermissionLayouts.Developer),
-                Role.SeniorModerator => Permissions.AddPermissions(layout, PermissionLayouts.SeniorModerator),
-                _ => PermissionLayouts.Empty
-            });
-
-            int count = rvUser.Permissions.Count <= standartCount ? rvUser.Permissions.Count : standartCount;
+            UserPermissions layout = new(Permissions.Layouts[rvUser.Status] + Permissions.Layouts[rvUser.Role]);
 
             if (type == "maximize")
             {
@@ -239,38 +114,47 @@ namespace RightVisionBot.UI
             }
             else
             {
-                foreach (var permission in rvUser.Permissions.Take(count))
-                    fullList.AppendLine("• " + permission);
-                if (rvUser.Permissions.Count > 10)
+                for (var i = 0; i <= 10; i++)
+                    try
+                    {
+                        fullList.AppendLine("• " + rvUser.Permissions.Collection[i]);
+                    }
+                    catch (Exception e) when (e.Message.Contains("Index was out of range"))
+                    {
+                        break;
+                    }
+                if (rvUser.Permissions.Count >= 10)
                     fullList.AppendLine("...");
             }
 
             //Составление списка добавленных прав
             foreach (var permission in rvUser.Permissions)
-                if (!layout.Contains(permission))
+            {
+                if (!Permissions.Layouts[rvUser.Status].Contains(permission) &&
+                    !Permissions.Layouts[rvUser.Role].Contains(permission))
                 {
                     addedPerms.Add(permission);
                     addedList.AppendLine("+ " + permission);
                 }
+            }
 
             //Составление списка отобранных прав
-            foreach (var permission in layout)
-                if (!rvUser.Permissions.Contains(permission))
-                {
-                    blockedPerms.Add(permission);
-                    blockedList.AppendLine("- " + permission);
-                }
+            foreach (var permission in layout.Collection.Where(permission => !rvUser.Permissions.Contains(permission)))
+            {
+                blockedPerms.Add(permission);
+                blockedList.AppendLine("- " + permission);
+            }
 
-            string addedFormat = addedPerms.Count == 0 ? string.Empty : $"{Language.GetPhrase("Profile_Permissions_AddedList", rvUser.Lang)}\n{addedList}\n";
-            string blockedFormat = blockedPerms.Count == 0 ? string.Empty : $"{Language.GetPhrase("Profile_Permissions_BlockedList", rvUser.Lang)}\n{blockedList}";
-            string permissionsFormat = $"{header}\n\n" +
-                                       $"{Language.GetPhrase("Profile_Permissions_FullList", rvUser.Lang)}\n{fullList}\n" +
-                                       addedFormat +
-                                       blockedFormat;
-            await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, permissionsFormat, replyMarkup: keyboard);
+            var addedFormat = addedPerms.Count == 0 ? string.Empty : $"{Language.GetPhrase("Profile_Permissions_AddedList", rvUser.Lang)}\n{addedList}\n";
+            var blockedFormat = blockedPerms.Count == 0 ? string.Empty : $"{Language.GetPhrase("Profile_Permissions_BlockedList", rvUser.Lang)}\n{blockedList}";
+            var permissionsFormat = $"{header}\n\n" +
+                                    $"{Language.GetPhrase("Profile_Permissions_FullList", rvUser.Lang)}\n{fullList}\n" +
+                                    addedFormat +
+                                    blockedFormat;
+            await BotClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, permissionsFormat, replyMarkup: keyboard);
         }
 
-        public static async Task PunishmentsList(ITelegramBotClient botClient, Update update, RvUser rvUser)
+        public static async Task PunishmentsList(Update update, RvUser rvUser)
         {
             string groupMember = Language.GetPhrase("Profile_Punishment_InMembers", rvUser.Lang);
             string groupCritic = Language.GetPhrase("Profile_Punishment_InMembers", rvUser.Lang);
@@ -278,7 +162,7 @@ namespace RightVisionBot.UI
             string dateTo = Language.GetPhrase("Profile_Punishment_DateTo", rvUser.Lang);
 
             StringBuilder sb = new();
-            foreach (var pun in rvUser.Punishments)
+            foreach (var pun in rvUser.Punishments.Collection)
             {
                 string type = pun.Type == RvPunishment.PunishmentType.Ban ? "🔒Бан " : "🔇Мут ";
                 string group = pun.GroupId == -1002074764678 ? groupMember : groupCritic;
@@ -290,13 +174,13 @@ namespace RightVisionBot.UI
 
             try
             {
-                await botClient.EditMessageTextAsync(update.CallbackQuery.Message.Chat,
+                await BotClient.EditMessageTextAsync(update.CallbackQuery.Message.Chat,
                     update.CallbackQuery.Message.MessageId, sb.ToString(),
                     replyMarkup: Keyboard.PermissionsBack(rvUser));
             }
-            catch (Exception ex) when(ex.Message.Contains("Bad Request: message text is empty"))
+            catch (Exception ex) when (ex.Message.Contains("Bad Request: message text is empty"))
             {
-                await botClient.AnswerCallbackQueryAsync(update.CallbackQuery.Id, Language.GetPhrase("Profile_NoPunishments", rvUser.Lang), showAlert: true);
+                await BotClient.AnswerCallbackQueryAsync(update.CallbackQuery.Id, Language.GetPhrase("Profile_NoPunishments", rvUser.Lang), showAlert: true);
             }
 
         }

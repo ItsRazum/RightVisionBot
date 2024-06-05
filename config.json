@@ -1,4 +1,5 @@
 {
- "BotToken": "Enter your token here",
- "MySQL": "enter your MySQL connection here"
+  "buildDate": "06.05.2024",
+  "BotToken": "6504108595:AAH7E0rdvgQK6m8NZ8XpcsGDzC-9JNbfctU",
+  "MySQL": "server=127.0.0.1;uid=root;pwd=3MVb4Mc6m37A;database=RightVision"
 }

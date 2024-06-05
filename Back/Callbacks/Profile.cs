@@ -1,10 +1,4 @@
 ﻿using RightVisionBot.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using RightVisionBot.UI;
 using Telegram.Bot.Types;
 using Telegram.Bot;
@@ -66,7 +60,7 @@ namespace RightVisionBot.Back.Callbacks
                     }
                 };
                 await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
-                    UserProfile.ProfileFormat(plugMessage, RvUser.Get(plugMessage.From.Id)), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(plugMessage.From.Id), plugMessage));
+                    RvUser.Get(plugMessage.From.Id).ProfilePublic(), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(plugMessage.From.Id), plugMessage));
             }
 
             else if (callbackQuery.StartsWith("permissions_minimize-"))
@@ -76,7 +70,7 @@ namespace RightVisionBot.Back.Callbacks
                 await UserProfile.PermissionsList(callback, RvUser.Get(long.Parse(callbackQuery.Replace("permissions_maximize-", ""))), "maximize");
 
             else if (callbackQuery.StartsWith("menu_history-"))
-                await UserProfile.PunishmentsList(botClient, update, RvUser.Get(long.Parse(callbackQuery.Replace("menu_history-", ""))));
+                await UserProfile.PunishmentsList(update, RvUser.Get(long.Parse(callbackQuery.Replace("menu_history-", ""))));
         }
     }
 }

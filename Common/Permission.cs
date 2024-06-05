@@ -1,150 +1,114 @@
 ﻿using System.Text;
+using RightVisionBot.Types;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace RightVisionBot.Common;
 
-class PermissionLayouts
-    {
-        public static HashSet<Permission> User = new()
-        {
-            Permission.Messaging,            Permission.OpenProfile, 
-            Permission.SendCriticForm,       Permission.SendMemberForm
-        };
-
-        public static HashSet<Permission> Critic = new(User)
-        {
-            Permission.CriticMenu,           Permission.CriticChat, 
-            Permission.ChattingInCriticChat, Permission.Evaluation
-        };
-
-        public static HashSet<Permission> Member = new(User)
-        {
-            Permission.TrackCard,            Permission.MemberChat, 
-            Permission.ChattingInMemberChat, 
-        };
-
-        public static HashSet<Permission> CriticAndMember = new(User)
-        {
-            Permission.CriticMenu,           Permission.CriticChat,
-            Permission.ChattingInCriticChat, Permission.Evaluation,
-            Permission.TrackCard,            Permission.MemberChat,
-            Permission.ChattingInMemberChat,
-        };
-
-        public static HashSet<Permission> Moderator = new(User)
-        {
-            Permission.Mute,                 Permission.Unmute,
-            Permission.Cancel
-        };
-
-        public static HashSet<Permission> SeniorModerator = new(Moderator)
-        {
-            Permission.Ban,                  Permission.Unban,
-            Permission.BlacklistOn,          Permission.BlacklistOff,
-            Permission.EditPermissions,      Permission.Block
-        };
-
-    public static HashSet<Permission> Curator = new()
-        {
-            Permission.PreListening,         Permission.Curate,
-            Permission.Rewarding             
-        };
-
-    public static HashSet<Permission> Empty = new();
-
-    public static HashSet<Permission> Developer = new()
-        {
-            Permission.Audit
-        };
-
-    public static HashSet<Permission> Admin = new(CriticAndMember)
-        {
-            Permission.Sending,              Permission.News,
-            Permission.MemberNews,           Permission.TechNews,
-            Permission.PreListening,         Permission.Curate,
-            Permission.Ban,                  Permission.Mute,
-            Permission.EditPermissions,      Permission.BlacklistOn,
-            Permission.Block,                Permission.Cancel,
-            Permission.Audit,                Permission.Rewarding,
-            Permission.Grant,                Permission.GivePermission,
-            Permission.Degrade,              Permission.DegradePermission,
-            Permission.Unban,                Permission.Unmute,
-            Permission.BlacklistOff,
-        };
-    }
-
 class Permissions
 {
-    private static ITelegramBotClient botClient = Program.botClient;
+    public static UserPermissions User = new()
+    {
+        Permission.Messaging,            Permission.OpenProfile,
+        Permission.SendCriticForm,       Permission.SendMemberForm
+    };
 
-    public static void NoPermission(Chat chat) => botClient.SendTextMessageAsync(chat, "Извини, но у тебя нет права совершать это действие!");
+    public static UserPermissions Critic = new(User + new UserPermissions
+    {
+        Permission.CriticMenu,           Permission.CriticChat,
+        Permission.ChattingInCriticChat, Permission.Evaluation
+    });
+
+    public static UserPermissions Member = new(User + new UserPermissions
+    {
+        Permission.TrackCard,            Permission.MemberChat,
+        Permission.ChattingInMemberChat,
+    });
+
+    public static UserPermissions ExMember = new(User + new UserPermissions
+    {
+        Permission.MemberChat,
+        Permission.ChattingInMemberChat,
+    });
+
+    public static UserPermissions CriticAndMember = new(User + Member + Critic);
+
+    public static UserPermissions CriticAndExMember = new(User + ExMember + Critic);
+
+    public static UserPermissions Moderator = new(User + new UserPermissions
+    {
+        Permission.Mute,                Permission.Unmute,
+        Permission.Cancel,              Permission.News,
+        Permission.MemberNews
+    });
+
+    public static UserPermissions SeniorModerator = new(Moderator + new UserPermissions
+    {
+        Permission.Ban,                 Permission.Unban,
+        Permission.BlacklistOn,         Permission.BlacklistOff,
+        Permission.EditPermissions,     Permission.Block
+    });
+
+    public static UserPermissions Curator = new()
+    {
+        Permission.PreListening,        Permission.Curate,
+        Permission.Rewarding
+    };
+
+    public static UserPermissions Empty = new();
+
+    public static UserPermissions Developer = new()
+    {
+        Permission.Audit
+    };
+
+    public static UserPermissions Admin = new(User + CriticAndMember + SeniorModerator + Curator + Developer + new UserPermissions()
+    {
+        Permission.Degrade,             Permission.DegradePermission,
+        Permission.GivePermission,      Permission.Grant,
+        Permission.TechNews
+    });
+
+    private static readonly ITelegramBotClient BotClient = Program.botClient;
+
+    public static readonly Dictionary<Enum, UserPermissions> Layouts = new()
+    {
+        { Status.User, User },
+        { Status.Critic, Critic },
+        { Status.Member, Member },
+        { Status.ExMember, ExMember },
+        { Status.CriticAndMember, CriticAndMember },
+        { Status.CriticAndExMember, CriticAndExMember },
+
+        { Role.Admin, Admin },
+        { Role.Curator, Curator },
+        { Role.Developer, Developer },
+        { Role.Moderator, Moderator },
+        { Role.SeniorModerator, SeniorModerator },
+
+        { Role.TechAdmin, Empty },
+        { Role.Designer, Empty },
+        { Role.Translator, Empty },
+        { Role.None, Empty }
+    };
+
+    public static void NoPermission(Chat chat) => BotClient.SendTextMessageAsync(chat, "Извини, но у тебя нет права совершать это действие!");
 
     public static async Task Reset(ITelegramBotClient botClient, Message message, RvUser rvUser)
     {
         if (message.ReplyToMessage != null && rvUser.Has(Permission.DegradePermission) && rvUser.Has(Permission.GivePermission))
         {
-            RvUser repliedRvUser = RvUser.Get(message.ReplyToMessage.From.Id);
-            string statusLayout = string.Empty;
-            string roleLayout = string.Empty;
-            switch (repliedRvUser.Status)
-            {
-                case Status.User:
-                    repliedRvUser.Permissions = PermissionLayouts.User;
-                    statusLayout = "User";
-                    break;
-                case Status.Critic:
-                    repliedRvUser.Permissions = PermissionLayouts.Critic;
-                    statusLayout = "Critic";
-                    break;
-                case Status.Member:
-                    repliedRvUser.Permissions = PermissionLayouts.Member;
-                    statusLayout = "Member";
-                    break;
-                case Status.CriticAndMember:
-                    repliedRvUser.Permissions = PermissionLayouts.CriticAndMember;
-                    statusLayout = "CriticAndMember";
-                    break;
-            }
-
-            switch (repliedRvUser.Role)
-            {
-                case Role.Admin:
-                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Admin);
-                    roleLayout = "Admin";
-                    break;
-                case Role.Curator:
-                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Curator);
-                    roleLayout = "Curator";
-                    break;
-                case Role.Moderator:
-                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Moderator);
-                    roleLayout = "Moderator";
-                    break;
-                case Role.Developer:
-                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.Developer);
-                    roleLayout = "Developer";
-                    break;
-                case Role.SeniorModerator:
-                    repliedRvUser.AddPermissions(hashSet: PermissionLayouts.SeniorModerator);
-                    roleLayout = "SeniorModerator";
-                    break;
-            }
+            var repliedRvUser = RvUser.Get(message.ReplyToMessage.From.Id);
+            
+            repliedRvUser.ResetPermissions();
+            string statusLayout = repliedRvUser.Status.ToString();
+            string roleLayout = repliedRvUser.Role.ToString();
 
             await botClient.SendTextMessageAsync(message.Chat, $"Выполнен сброс прав до стандартных для пользователя.\n\nИспользованные шаблоны:\n{statusLayout}\n{roleLayout}");
         }
         else
-            Permissions.NoPermission(message.Chat);
-    }
-
-    public static HashSet<Permission> AddPermissions(HashSet<Permission> permissions, HashSet<Permission> permissionsToAdd)
-    {
-        HashSet<Permission> newPermissions = new(permissions);
-        foreach (var permission in permissionsToAdd)
-            newPermissions.Add(permission);
-
-        return newPermissions;
+            NoPermission(message.Chat);
     }
 }
 
@@ -213,5 +177,5 @@ public enum Permission
     /// <summary>Право на размут пользователя</summary>
     Unmute,
     /// <summary>Право на удаление пользователя из чёрного списка</summary>
-    BlacklistOff,
+    BlacklistOff
 }

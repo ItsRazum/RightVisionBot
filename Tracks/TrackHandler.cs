@@ -14,7 +14,6 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 //система чтения, записи и отправки треков
 namespace RightVisionBot.Tracks
 {
-    [Serializable]
     public class TrackInfo
     {
         public long UserId;
@@ -31,23 +30,12 @@ namespace RightVisionBot.Tracks
         private string? _text = null;
         public string? Text { get => _text; set { _text = value; NewString(value, nameof(Text)); } }
 
-        private string NewString(string value, string property)
-        { _OnPropertyChanged(property, value); return value; }
-
-        public event Action<string> OnPropertyChanged = delegate { };
-        private void _OnPropertyChanged(string property, string value)
-        { OnPropertyChanged(property); UpdateDatabase(property, value); }
-
-        private void UpdateDatabase(string property, string value)
-        {
-            sql database = Program.database;
-            database.Read($"UPDATE `RV_Tracks` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
-        }
+        private void NewString(string? value, string property) => Program.database.Read($"UPDATE `RV_Tracks` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
     }
 
     public class Track
     {
-        public static volatile List<TrackInfo> Tracks = new List<TrackInfo>();
+        public static volatile List<TrackInfo> Tracks = new();
         private static sql database = Program.database;
         public static async Task Send(ITelegramBotClient botClient, Message? message = null, CallbackQuery? callback = null)
         {
@@ -110,7 +98,7 @@ namespace RightVisionBot.Tracks
         public static string IsImageSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Image != null ? "Profile_Track_ImageSent" : "Profile_Track_ImageNotSent", RvUser.Get(userId).Lang) : null;
         public static string IsTextSent(long userId) =>  GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Text != null  ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
 
-        public static TrackInfo GetTrack(long userId)
+        public static TrackInfo? GetTrack(long userId)
         {
             foreach (var trackInfo in Data.RvMembers)
                 if (trackInfo.Track != null && trackInfo.Track.UserId == userId)
@@ -129,25 +117,20 @@ namespace RightVisionBot.Tracks
             try
             {
                 botClient.SendDocumentAsync(-1001968408177, new InputFileId(member.Track.Track),
-                    caption:
-                    $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                    caption: $"Название: {member.TrackStr}\nКатегория: {member.Status}");
                 botClient.SendPhotoAsync(-1001968408177, new InputFileId(member.Track.Image),
-                    caption:
-                    $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                    caption: $"Название: {member.TrackStr}\nКатегория: {member.Status}");
                 botClient.SendDocumentAsync(-1001968408177, new InputFileId(member.Track.Text),
-                    caption:
-                    $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                    caption: $"Название: {member.TrackStr}\nКатегория: {member.Status}");
             }
             catch
             {
                 try
                 {
                     botClient.SendDocumentAsync(-1001968408177, new InputFileId(member.Track.Track),
-                        caption:
-                        $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                        caption: $"Название: {member.TrackStr}\nКатегория: {member.Status}");
                     botClient.SendPhotoAsync(-1001968408177, new InputFileId(member.Track.Image),
-                        caption:
-                        $"Название: {member.TrackStr}\nКатегория: {member.Status}");
+                        caption: $"Название: {member.TrackStr}\nКатегория: {member.Status}");
                 }
                 catch
                 {

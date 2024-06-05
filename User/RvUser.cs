@@ -1,10 +1,9 @@
-﻿using System.Diagnostics.Metrics;
+﻿using RightVisionBot.Back;
+using RightVisionBot.Common;
+using RightVisionBot.Types;
+using RightVisionBot.UI;
 using System.Text;
 using System.Timers;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using System.Globalization;
-using RightVisionBot.Back;
 using RightVisionBot.Common;
 
 namespace RightVisionBot.User;
@@ -13,14 +12,17 @@ public class RvUser
 {
     public long UserId;
 
+    private string? _name;
+    public string? Name { get => _name; set { _name = value; NewString(value, nameof(Name)); } }
+
     private Status _status = Status.User;
     public Status Status { get => _status; set { _status = value; NewString(value.ToString(), nameof(Status)); } }
 
-    private HashSet<Permission> _permissions = new HashSet<Permission>(PermissionLayouts.User);
-    public HashSet<Permission> Permissions { get => _permissions; set { _permissions = value; NewPerms(value); } }
+    private UserPermissions _permissions = new();
+    public UserPermissions Permissions { get => _permissions; set { _permissions = value; NewString(value.ToString(), "permissions"); } }
 
-    private List<RvPunishment> _punishments = new List<RvPunishment>();
-    public List<RvPunishment> Punishments { get => _punishments; set { _punishments = value; NewPunishments(value); } }
+    private RvPunishments _punishments = new();
+    public RvPunishments Punishments { get => _punishments; set { _punishments = value; NewString(value.ToString(), nameof(Punishments)); } }
 
     private string _lang = "ru";
     public string Lang { get => _lang; set { _lang = value; NewString(value, nameof(Lang)); } }
@@ -34,31 +36,44 @@ public class RvUser
     private string _category = "none";
     public string Category { get => _category; set { _category = value; NewString(value, nameof(Category)); } }
 
-    private List<Dictionary<int, string>> _rewards = new();
-    public List<Dictionary<int, string>> Rewards { get => _rewards; set { _rewards = value; NewRewards(value); } }
+    public Rewards Rewards { get; set; }
 
-    public System.Timers.Timer? Cooldown;
+    public System.Timers.Timer Cooldown;
     private System.Timers.Timer? CounterCooldown { get; set; }
-    private int _counter = 0;
+    private int _counter;
 
-
-    private string NewString(string value, string property)
-    { _OnPropertyChanged(property, value); return value; }
-
-    private HashSet<Permission> NewPerms(HashSet<Permission> permissions)
-    { _OnPropertyChanged("permissions", PermissionsAsString(permissions)); return permissions; }
-
-    private List<RvPunishment> NewPunishments(List<RvPunishment> punishments)
-    { _OnPropertyChanged("punishments", PunishmentsAsString(punishments)); return punishments; }
-
-    private List<Dictionary<int, string>> NewRewards(List<Dictionary<int, string>> rewards)
-    { _OnPropertyChanged("rewards", RewardsAsString(rewards)); return rewards; }
-
-    public event Action<string> OnPropertyChanged = delegate { };
-
-    private void _OnPropertyChanged(string property, string value)
+    public RvUser(long userId, string lang, Status status, RvLocation rvLocation, Role role, string category, string username, bool writeToDb)
     {
-        OnPropertyChanged(property);
+        _name = username;
+        Name = username;
+        UserId = userId;
+        Lang = lang;
+        Status = status;
+        RvLocation = rvLocation;
+        Role = role;
+        Category = category;
+        Cooldown = new System.Timers.Timer(0.1);
+        Rewards = new Rewards(userId);
+
+        if (writeToDb)
+        {
+            Program.database.Read(
+                $"INSERT INTO RV_Users(`username`, `userId`, `lang`, `status`, `rvLocation`, `role`, `category`) VALUES ('{username}', {userId}, '{lang}', '{status}', '{rvLocation}', '{role}', '{category}');",
+                "");
+            ResetPermissions();
+        }
+
+        Data.RvUsers.Add(this);
+    }
+
+    public void ResetPermissions()
+    {
+        Permissions = new UserPermissions(Common.Permissions.Layouts[Status] + Common.Permissions.Layouts[Role], UserId);
+        Program.database.Read($"UPDATE `RV_Users` SET `permissions` = '{Permissions}' WHERE `userId` = {UserId}", "");
+    }
+
+    private void NewString(string value, string property)
+    {
         UpdateDatabase(property, value);
         _counter++;
         if (_counter == 1)
@@ -68,126 +83,127 @@ public class RvUser
             CounterCooldown.Start();
         }
 
-        if (Cooldown == null || !Cooldown.Enabled)
-        {
-            Cooldown = new System.Timers.Timer(TimerInterval());
-            Cooldown.Elapsed += CooldownElapsed;
-            Cooldown.Start();
-        }
+        if (Cooldown is { Enabled: true }) return;
+        Cooldown = new System.Timers.Timer(TimerInterval());
+        Cooldown.Elapsed += CooldownElapsed;
+        Cooldown.Start();
     }
 
     private void UpdateDatabase(string property, string value) => Program.database.Read($"UPDATE `RV_Users` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
 
-    public string PermissionsAsString(HashSet<Permission> permission)
-    {
-        StringBuilder sb = new StringBuilder();
-        foreach (var perm in permission)
-            sb.Append(perm + ";");
-        return sb.ToString();
-    }
-
-    private string PunishmentsAsString(List<RvPunishment> punishments)
-    {
-        StringBuilder sb = new();
-        foreach (var punishment in punishments)
-        {
-            StringBuilder one = new();
-            one.Append($"{punishment.Type};");
-            one.Append(punishment.GroupId + ";");
-            one.Append(punishment.Reason + ";");
-            one.Append(punishment.From.ToString(CultureInfo.GetCultureInfo("en-US").DateTimeFormat) + ";");
-            one.Append(punishment.To.ToString(CultureInfo.GetCultureInfo("en-US").DateTimeFormat) + ",");
-            sb.Append(one.ToString());
-        }
-        return sb.ToString();
-    }
-
-    public void AddPunishment(RvPunishment.PunishmentType type, long groupId, string reason, DateTime from, DateTime to)
-    {
-        List<RvPunishment> newPunishments = new(Punishments)
-        {
-            new()
-            {
-                Type = type,
-                GroupId = groupId,
-                Reason = reason,
-                From = from,
-                To = to
-            }
-        };
-        newPunishments.Reverse();
-        Punishments = newPunishments;
-    }
-
     private void NewRole(string value, string property)
     {
-        switch (Role)
-        {
-            case Role.Admin: AddPermissions(hashSet: PermissionLayouts.Admin); break;
-            case Role.Moderator: AddPermissions(hashSet: PermissionLayouts.Moderator); break;
-            case Role.Curator: AddPermissions(hashSet: PermissionLayouts.Curator); break;
-            case Role.Developer: AddPermissions(hashSet: PermissionLayouts.Developer); break;
-        }
-
+        Permissions += Common.Permissions.Layouts[Role];
         NewString(value, property);
-    }
-
-    private string RewardsAsString(List<Dictionary<int, string>> rewards)
-    {
-        StringBuilder sb = new StringBuilder();
-        foreach (var dictionary in rewards)
-            foreach (var reward in dictionary)
-                sb.Append(reward.Value + ";");
-        return sb.ToString();
     }
 
     public bool Has(Permission permission) => Permissions.Contains(permission);
 
-    public void AddPermissions(Permission[]? array = null, HashSet<Permission>? hashSet = null)
-    {
-        HashSet<Permission> newPermissions = new(Permissions);
-        if (array != null)
-            foreach (Permission permission in array)
-                newPermissions.Add(permission);
-
-        else if (hashSet != null)
-            foreach (Permission permission in hashSet)
-                newPermissions.Add(permission);
-
-        this.Permissions = newPermissions;
-    }
-
-    public void RemovePermission(Permission permission)
-    {
-        HashSet<Permission> newPermissions = new(this.Permissions);
-        newPermissions.Remove(permission);
-        this.Permissions = newPermissions;
-    }
-
-    public void AddReward(string reward)
-    {
-        List<Dictionary<int, string>> newRewards = new(this.Rewards);
-        newRewards.Add(new() { [newRewards.Count + 1] = reward });
-        this.Rewards = newRewards;
-    }
-
     private int TimerInterval()
     {
-        if (_counter < 10)
-            return 1000;
-        else if (_counter < 20)
-            return 5000;
-        else if (_counter < 25)
-            return 10000;
-        else
-            return 500;
+        return _counter switch
+        {
+            < 10 => 1000,
+            < 20 => 5000,
+            < 25 => 10000,
+            _ => 500
+        };
     }
 
-    private void CooldownElapsed(object sender, ElapsedEventArgs e) => Cooldown?.Stop();
-    private void CounterCooldownElapsed(object sender, ElapsedEventArgs e)
+    private void CooldownElapsed(object? sender, ElapsedEventArgs e) => Cooldown?.Stop();
+    private void CounterCooldownElapsed(object? sender, ElapsedEventArgs e)
     {
         CounterCooldown?.Stop();
         _counter = 0;
+    }
+
+    public string ProfilePrivate()
+    {
+        var header = Language.GetPhrase("Profile_Private_Header", Lang);
+
+        string roleFormat = Role == Role.None
+                ? Language.GetUserStatusString(Status, Lang)
+                : Language.GetUserStatusString(Status, Lang) + "\n" + string.Format(Language.GetPhrase("Profile_Role", Lang), Language.GetUserRoleString(Role, Lang));
+        
+        string formsStatus = string.Format(Language.GetPhrase("Profile_Forms", Lang),
+            UserProfile.GetCandidateStatus(UserId, "Member"),
+            UserProfile.GetCandidateStatus(UserId, "Critic"));
+
+        string category = UserProfile.CategoryFormat(Category);
+        StringBuilder rewards = new();
+        rewards.AppendLine(Language.GetPhrase("Profile_Form_Rewards", Lang));
+        foreach (var reward in Rewards.Collection)
+            rewards.AppendLine("| " + reward.Value.Icon + reward.Key + " – " + reward.Value.Description);
+        string sending = string.Format
+        (Language.GetPhrase("Profile_Sending_Status", Lang),
+         Language.GetPhrase(!Has(Permission.Sending) ? "Profile_Sending_Status_Inactive" : "Profile_Sending_Status_Active", Lang));
+
+        string optional = sending + formsStatus + rewards;
+        string profile = Status switch
+        {
+            Status.User => header + roleFormat + optional,
+            Status.Member => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_Member_Layout", Lang),
+                /*0*/ category,
+                /*1*/ RvMember.Get(UserId).TrackStr) + optional,
+            Status.ExMember => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_Member_Layout", Lang),
+                /*0*/ category,
+                /*1*/ RvExMember.Get(UserId).TrackStr) + optional,
+            Status.Critic => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_Critic_Layout", Lang),
+                /*0*/category) + optional,
+            Status.CriticAndMember => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
+                /*0*/category,
+                /*1*/RvMember.Get(UserId).TrackStr) + optional,
+            Status.CriticAndExMember => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
+                /*0*/category,
+                /*1*/RvExMember.Get(UserId).TrackStr) + optional,
+            _ => "Неизвестная ошибка"
+        };
+        return profile;
+    }
+
+    public string ProfilePublic()
+    {
+        var header = string.Format(Language.GetPhrase("Profile_Global_Header", Lang), Name);
+        string roleFormat = Role == Role.None
+        ? Language.GetUserStatusString(Status, Lang)
+        : Language.GetUserStatusString(Status, Lang) + "\n" + string.Format(Language.GetPhrase("Profile_Role", Lang), Language.GetUserRoleString(Role, Lang));
+        string category = UserProfile.CategoryFormat(Category);
+        StringBuilder rewards = new();
+        rewards.AppendLine(Language.GetPhrase("Profile_Form_Rewards", Lang));
+        foreach (var reward in Rewards.Collection)
+            rewards.AppendLine("| " + reward.Value.Icon + reward.Key + " – " + reward.Value.Description);
+        
+        string optional = rewards.ToString();
+        string profile = Status switch
+        {
+            Status.User => header + roleFormat + optional,
+            Status.Member => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_Member_Layout", Lang),
+                /*0*/ category,
+                /*1*/ "Скрыт") + optional,
+            Status.ExMember => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_Member_Layout", Lang),
+                /*0*/ category,
+                /*1*/ RvExMember.Get(UserId).TrackStr) + optional,
+            Status.Critic => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_Critic_Layout", Lang),
+                /*0*/category) + optional,
+            Status.CriticAndMember => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
+                /*0*/category,
+                /*1*/"Скрыт") + optional,
+            Status.CriticAndExMember => header + roleFormat + string.Format(
+                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
+                /*0*/category,
+                /*1*/RvExMember.Get(UserId).TrackStr) + optional,
+            _ => "Неизвестная ошибка"
+        };
+        return profile;
     }
 
     public static RvUser Get(long userId)
@@ -197,20 +213,5 @@ public class RvUser
                 return user;
 
         return null;
-    }
-}
-
-public class RvPunishment
-{
-    public PunishmentType Type;
-    public long GroupId;
-    public string? Reason;
-    public DateTime From;
-    public DateTime To;
-
-    public enum PunishmentType
-    {
-        Ban,
-        Mute
     }
 }

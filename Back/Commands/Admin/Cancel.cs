@@ -23,7 +23,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 database.Read($"DELETE FROM `RV_Members` WHERE `userId` = '{newMessage}';", "");
                 Data.RvMembers.Remove(RvMember.Get(newMessage));
 
-                RvUser.Get(newMessage).AddPermissions(array: new [] { Permission.SendMemberForm });
+                RvUser.Get(newMessage).Permissions.Add(Permission.SendMemberForm);
                 await botClient.SendTextMessageAsync(message.Chat, $"Участие пользователя Id:{newMessage} аннулировано");
                 await botClient.SendTextMessageAsync(newMessage,
                     string.Format(Language.GetPhrase("Member_Messages_FormCanceled",
@@ -42,7 +42,7 @@ namespace RightVisionBot.Back.Commands.Admin
             {
                 database.Read($"DELETE FROM `RV_Critics` WHERE `userId` = '{newMessage}';", "");
                 Data.RvCritics.Remove(RvCritic.Get(newMessage));
-                RvUser.Get(newMessage).AddPermissions(array: new[] { Permission.SendCriticForm });
+                RvUser.Get(newMessage).Permissions.Add(Permission.SendCriticForm);
 
                 await botClient.SendTextMessageAsync(message.Chat, $"Судейство пользователя Id:{newMessage} аннулировано");
                 await botClient.SendTextMessageAsync(newMessage,

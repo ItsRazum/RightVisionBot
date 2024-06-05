@@ -51,7 +51,7 @@ namespace RightVisionBot.Back.Callbacks
                         };
                         Program.UpdateRvLocation(callbackUserId, RvLocation.Profile);
                         await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
-                            UserProfile.ProfileFormat(message, RvUser.Get(callbackUserId)),
+                            RvUser.Get(callbackUserId).ProfilePrivate(),
                             replyMarkup: Keyboard.ProfileOptions(RvUser.Get(callbackUserId), message));
                     }
                     else

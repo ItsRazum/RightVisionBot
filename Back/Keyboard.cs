@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RightVisionBot.Common;
+﻿using RightVisionBot.Common;
 using RightVisionBot.Tracks;
 using RightVisionBot.UI;
 using RightVisionBot.User;
@@ -78,7 +73,7 @@ namespace RightVisionBot.Back
         }
 
         //=======
-        public static InlineKeyboardMarkup Forms(RvUser rvUser, RvLocation location) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup Forms(RvUser rvUser, RvLocation location) => new(new[]
         { 
             new [] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), location switch
             {
@@ -108,7 +103,7 @@ namespace RightVisionBot.Back
         { new [] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_about") } });
 
         //=======
-        public static InlineKeyboardMarkup CancelForm(RvUser rvUser, Status? type = null) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup CancelForm(RvUser rvUser, Status? type = null) => new(new[]
         { new [] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang),
                     type switch
                     {
@@ -120,7 +115,7 @@ namespace RightVisionBot.Back
         });
 
         //=======
-        public static InlineKeyboardMarkup Minimize(RvUser rvUser) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup Minimize(RvUser rvUser) => new(new[]
         { new [] 
             { 
                 InlineKeyboardButton.WithCallbackData("↑ " + "Свернуть", $"permissions_minimize-{rvUser.UserId}"),
@@ -128,7 +123,7 @@ namespace RightVisionBot.Back
             }
         });
 
-        public static InlineKeyboardMarkup Maximize(RvUser rvUser) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup Maximize(RvUser rvUser) => new(new[]
         { new []
             {
                 InlineKeyboardButton.WithCallbackData("↓ " + "Развернуть", $"permissions_maximize-{rvUser.UserId}"),
@@ -147,10 +142,10 @@ namespace RightVisionBot.Back
         { ResizeKeyboard = true };
         
         //=======
-        public static ReplyKeyboardMarkup backButton(string lang) => new ReplyKeyboardMarkup(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", lang)) }) { ResizeKeyboard = true };
+        public static ReplyKeyboardMarkup BackButton(string lang) => new(new[] { new KeyboardButton(Language.GetPhrase("Keyboard_Choice_Back", lang)) }) { ResizeKeyboard = true };
         
         //=======
-        public static ReplyKeyboardMarkup chooseRate(string lang) => new(new[]
+        public static ReplyKeyboardMarkup ChooseRate(string lang) => new(new[]
             {
                 new[]
                 {
@@ -187,7 +182,7 @@ namespace RightVisionBot.Back
                 new[]
                 {
                     InlineKeyboardButton.WithCallbackData("🥉Bronze", "c_changeTo_bronze"),
-                    InlineKeyboardButton.WithCallbackData("🥈Steel", "c_changeTo_steel")
+                    InlineKeyboardButton.WithCallbackData("🥈Silver", "c_changeTo_silver")
                 },
                 new[]
                 {
@@ -209,7 +204,7 @@ namespace RightVisionBot.Back
         });
 
         //=======
-        public static InlineKeyboardMarkup Evaluation(long userId) => new InlineKeyboardMarkup(new[]
+        public static InlineKeyboardMarkup Evaluation(long userId) => new(new[]
         {
             new[]
             {
@@ -238,12 +233,12 @@ namespace RightVisionBot.Back
             });
         
         //=======
-        public static InlineKeyboardMarkup cCategories(long userId) => new(
+        public static InlineKeyboardMarkup CCategories(long userId) => new(
             new[]
             {
                 new[] { InlineKeyboardButton.WithCallbackData("❌Отклонить", $"c_deny2-{userId}") },
                 new[] { InlineKeyboardButton.WithCallbackData("🥉Bronze", $"c_bronze-{userId}") },
-                new[] { InlineKeyboardButton.WithCallbackData("🥈Steel", $"c_steel-{userId}") },
+                new[] { InlineKeyboardButton.WithCallbackData("🥈Silver", $"c_silver-{userId}") },
                 new[] { InlineKeyboardButton.WithCallbackData("🥇Gold", $"c_gold-{userId}") },
                 new[] { InlineKeyboardButton.WithCallbackData("💎Brilliant", $"c_brilliant-{userId}") }
             }
@@ -254,7 +249,7 @@ namespace RightVisionBot.Back
         );
         
         //=======
-        public static InlineKeyboardMarkup finalActions = new InlineKeyboardMarkup(
+        public static InlineKeyboardMarkup finalActions = new(
             new[]
             {
                 new[]
@@ -268,18 +263,18 @@ namespace RightVisionBot.Back
             }
         );
         //=======
-        public static InlineKeyboardMarkup mCategories(long userId) => new(
+        public static InlineKeyboardMarkup MCategories(long userId) => new(
             new[]
             {
                 new[] { InlineKeyboardButton.WithCallbackData("❌Отклонить", $"m_deny2-{userId}") },
                 new[] { InlineKeyboardButton.WithCallbackData("🥉Bronze", $"m_bronze-{userId}") },
-                new[] { InlineKeyboardButton.WithCallbackData("🥈Steel", $"m_steel-{userId}") },
+                new[] { InlineKeyboardButton.WithCallbackData("🥈Silver", $"m_silver-{userId}") },
                 new[] { InlineKeyboardButton.WithCallbackData("🥇Gold", $"m_gold-{userId}") },
                 new[] { InlineKeyboardButton.WithCallbackData("💎Brilliant", $"m_brilliant-{userId}") }
             }
         );
         //=======
-        public static InlineKeyboardMarkup memberAcceptOrDeny(long userId) => new InlineKeyboardMarkup(
+        public static InlineKeyboardMarkup MemberAcceptOrDeny(long userId) => new(
             new[]
             {
                 new[] { InlineKeyboardButton.WithCallbackData("Взять кураторство над участником", $"m_accept-{userId}") },
@@ -287,7 +282,7 @@ namespace RightVisionBot.Back
             }
         );
         //=======
-        public static InlineKeyboardMarkup criticAcceptOrDeny(long userId) => new InlineKeyboardMarkup(
+        public static InlineKeyboardMarkup CriticAcceptOrDeny(long userId) => new(
             new[]
             {
                 new[] { InlineKeyboardButton.WithCallbackData("Взять кураторство над судьёй", $"c_accept-{userId}") },
@@ -295,7 +290,7 @@ namespace RightVisionBot.Back
             }
         );
         //=======
-        public static InlineKeyboardMarkup KickHares = new InlineKeyboardMarkup(
+        public static InlineKeyboardMarkup KickHares = new(
             new[]
             {
                 new[]
@@ -337,6 +332,6 @@ namespace RightVisionBot.Back
         }
         */
 
-        public static ReplyKeyboardRemove remove = new ReplyKeyboardRemove();
+        public static ReplyKeyboardRemove remove = new();
     }
 }

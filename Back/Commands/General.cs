@@ -14,7 +14,7 @@ public class General
 {
     public static async Task Registration(ITelegramBotClient botClient, Message message)
     {
-        string? msgText = message.Text;
+        var msgText = message.Text;
         if (msgText != null)
         {
             switch (msgText.ToLower())
@@ -40,9 +40,8 @@ public class General
         }
     }
 
-    public static async Task Commands(ITelegramBotClient botClient, RvUser rvUser, Update update)
+    public static async Task Commands(ITelegramBotClient botClient, RvUser rvUser, Message message)
     {
-        var message = update.Message;
         string? msgText = message.Text;
         switch (msgText.ToLower())
         {
@@ -50,16 +49,29 @@ public class General
                 if (message.ReplyToMessage != null && message.ReplyToMessage.From.IsBot)
                     await botClient.SendTextMessageAsync(message.Chat, "🧾 Мой профиль RightVision:\n———\n🪪Статус: БОТ!!!!!\n🎖Категория участия: 🤓Душнила\n📍Место проживания: Хостинг за 150р\n💿Трек: Never Gonna Give You Up");
                 else
-                    await UserProfile.Profile(message);
+                {
+                    var getId = message.ReplyToMessage == null ? message.From.Id : message.ReplyToMessage.From.Id;
+                    await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(getId), message));
+                }
+
                 break;
             case "/about":
                 await botClient.SendTextMessageAsync(message.Chat, Program.About);
                 break;
+            case "//rmkboard":
+                if (rvUser.Role == Role.Admin)
+                    await botClient.SendTextMessageAsync(message.Chat, "Отключено", replyMarkup: Keyboard.remove);
+                break;
             default:
-                if (rvUser.RvLocation == RvLocation.MemberForm)
-                    Forms.Member.Form(botClient, message);
-                else if (rvUser.RvLocation == RvLocation.CriticForm)
-                    Forms.Critic.Form(botClient, message);
+                switch (rvUser.RvLocation)
+                {
+                    case RvLocation.MemberForm:
+                        await Forms.Member.Form(botClient, message);
+                        break;
+                    case RvLocation.CriticForm:
+                        await Forms.Critic.Form(botClient, message);
+                        break;
+                }
                 break;
         }
 

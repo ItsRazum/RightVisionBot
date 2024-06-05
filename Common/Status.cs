@@ -1,11 +1,17 @@
-﻿namespace RightVisionBot.Common;
+﻿using RightVisionBot.Back;
+using RightVisionBot.User;
+using Telegram.Bot.Types;
+
+namespace RightVisionBot.Common;
 
 public enum Status
 {
     User,
     Member,
+    ExMember,
     Critic,
-    CriticAndMember
+    CriticAndMember,
+    CriticAndExMember
 }
 
 public enum Role

@@ -17,7 +17,6 @@ namespace RightVisionBot.Back.Commands.Admin
             if (rvUser.Has(Permission.Unban))
             {
                 long bannedId = message.ReplyToMessage.From.Id == null ? long.Parse(message.Text.Replace("/mute ", "")) : message.ReplyToMessage.From.Id;
-                ChatMember bannedMember = await botClient.GetChatMemberAsync(message.Chat, bannedId);
                 string groupType = message.Chat.Id == -1001968408177 ? "организаторов" : "участников";
                 string link = message.Chat.Id == -1001968408177 ? "https://t.me/+vUBCHXqsoP9lOTAy" : "https://t.me/+p-NYz5VLgYBjZTMy";
 
@@ -27,7 +26,7 @@ namespace RightVisionBot.Back.Commands.Admin
                     await botClient.SendTextMessageAsync(message.Chat, "Пользователь разбанен!");
                     try
                     { await botClient.SendTextMessageAsync(bannedId, string.Format(Language.GetPhrase("Punishments_Unban_Notification", RvUser.Get(bannedId).Lang), groupType, link)); }
-                    catch { }
+                    catch { /* :) */ }
                 }
                 catch
                 { await botClient.SendTextMessageAsync(message.Chat, "Пользователь не забанен!"); }
@@ -43,10 +42,6 @@ namespace RightVisionBot.Back.Commands.Admin
                 long mutedId = message.ReplyToMessage.From.Id == null
                     ? long.Parse(message.Text.Replace("/mute ", ""))
                     : message.ReplyToMessage.From.Id;
-                ChatMember mutedMember = await botClient.GetChatMemberAsync(message.Chat, mutedId);
-                string groupType = message.Chat.Id == -1001968408177 ? "организаторов" : "участников";
-                string link = message.Chat.Id == -1001968408177 ? "https://t.me/+vUBCHXqsoP9lOTAy" : "https://t.me/+p-NYz5VLgYBjZTMy";
-
                 try
                 {
                     await botClient.RestrictChatMemberAsync(message.Chat, mutedId, new ChatPermissions()
@@ -60,7 +55,7 @@ namespace RightVisionBot.Back.Commands.Admin
                         CanSendPolls = true,
                         CanSendVideoNotes = true,
                         CanSendVoiceNotes = true
-                    }, untilDate: DateTime.Now);
+                    });
                     await botClient.SendTextMessageAsync(message.Chat, "Пользователь размучен!");
                 }
                 catch
@@ -82,11 +77,14 @@ namespace RightVisionBot.Back.Commands.Admin
                 RvUser bannedRvUser = RvUser.Get(bannedId);
                 try
                 {
-                    try { await botClient.UnbanChatMemberAsync(-1002074764678, bannedId); } catch { }
-                    try { await botClient.UnbanChatMemberAsync(-1001968408177, bannedId); } catch { }
+                    try { await botClient.UnbanChatMemberAsync(-1002074764678, bannedId); }
+                    catch {  /* :) */  }
+
+                    try { await botClient.UnbanChatMemberAsync(-1001968408177, bannedId); }
+                    catch {  /* :) */  }
 
                     bannedRvUser.RvLocation = RvLocation.MainMenu;
-                    bannedRvUser.AddPermissions(array: new[] { Permission.Messaging });
+                    bannedRvUser.Permissions.Add(Permission.Messaging);
 
                     await botClient.SendTextMessageAsync(message.Chat, $"Пользователь {bannedUser.FirstName} удалён из чёрного списка RightVision!");
                     await botClient.SendTextMessageAsync(bannedId, Language.GetPhrase("Punishments_BlacklistOff_Notification", bannedRvUser.Lang),

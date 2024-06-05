@@ -12,6 +12,7 @@ using Org.BouncyCastle.Asn1;
 using RightVisionBot.Back;
 using RightVisionBot.Common;
 using RightVisionBot.Tracks;
+using Telegram.Bot.Types.Enums;
 
 //корень участников, обработка всех событий от участников
 namespace RightVisionBot.User
@@ -21,54 +22,52 @@ namespace RightVisionBot.User
         public long UserId;
 
         private string _name = "0";
-        public string Name { get => _name; set { _name = value; newString(value, nameof(Name)); } }
+        public string Name { get => _name; set { _name = value; NewString(value, nameof(Name)); } }
 
         private string _telegram = "0";
-        public string Telegram { get => _telegram; set { _telegram = value; newString(value, nameof(Telegram)); } }
-
-        private string _country = "0";
-        public string Country { get => _country; set { _country = value; newString(value, nameof(Country)); } }
-
-        private string _city = "0";
-        public string City { get => _city; set { _city = value; newString(value, nameof(City)); } }
+        public string Telegram { get => _telegram; set { _telegram = value; NewString(value, nameof(Telegram)); } }
 
         private string _link = "0";
-        public string Link { get => _link; set { _link = value; newString(value, nameof(Link)); } }
+        public string Link { get => _link; set { _link = value; NewString(value, nameof(Link)); } }
 
         private string _rate = "0";
-        public string Rate { get => _rate; set { _rate = value; newString(value, nameof(Rate)); } }
+        public string Rate { get => _rate; set { _rate = value; NewString(value, nameof(Rate)); } }
 
         private string _track = "0";
-        public string TrackStr { get => _track; set { _track = value; newString(value, nameof(Track)); } }
+        public string TrackStr { get => _track; set { _track = value; NewString(value, nameof(Track)); } }
 
         private long _curator = 0;
-        public long Curator { get => _curator; set { _curator = value; newLong(value, nameof(Curator)); } }
+        public long Curator { get => _curator; set { _curator = value; NewString(value.ToString(), nameof(Curator)); } }
 
         private string _status = "0";
-        public string Status { get => _status; set { _status = value; newString(value, nameof(Status)); } }
+        public string Status { get => _status; set { _status = value; NewString(value, nameof(Status)); } }
 
         public TrackInfo? Track { get; set; }
 
-        private string newString(string value, string property)
+        public RvMember(long userId, string telegram)
         {
-            _OnPropertyChanged(property, value);
-            return value;
+            UserId = userId;
+            Telegram = telegram;
+
+            Program.database.Read($"INSERT INTO `RV_Members` (`telegram`, `userId`) VALUES ('{Telegram}', '{UserId}');", "");
+            Data.RvMembers.Add(this);
         }
 
-        private long newLong(long value, string property)
+        public RvMember(long userId, string name, string telegram, string link, string rate, string trackStr, long curator, string status)
         {
-            newString(value.ToString(), property);
-            return value;
+            UserId = userId;
+            Name = name;
+            Telegram = telegram;
+            Link = link;
+            Rate = rate;
+            TrackStr = trackStr;
+            Curator = curator;
+            Status = status;
+
+            Data.RvMembers.Add(this);
         }
 
-        public event Action<string> OnPropertyChanged = delegate { };
-        private void _OnPropertyChanged(string property, string value)
-        {
-            OnPropertyChanged(property);
-            UpdateDatabase(property, value);
-        }
-
-        private void UpdateDatabase(string property, string value)
+        private void NewString(string value, string property)
         {
             sql database = Program.database;
             switch (property)
@@ -83,12 +82,66 @@ namespace RightVisionBot.User
         public static RvMember Get(long userId)
         {
             foreach (RvMember member in Data.RvMembers)
-            {
                 if (member.UserId == userId)
                     return member;
-            }
+
+            return null;
+        }
+    }
+
+    class RvExMember
+    {
+        public long UserId;
+
+        private string _name = "0";
+        public string Name { get => _name; set { _name = value; NewString(value, nameof(Name)); } }
+
+        private string _telegram = "0";
+        public string Telegram { get => _telegram; set { _telegram = value; NewString(value, nameof(Telegram)); } }
+
+        private string _link = "0";
+        public string Link { get => _link; set { _link = value; NewString(value, nameof(Link)); } }
+
+        private string _rate = "0";
+        public string Rate { get => _rate; set { _rate = value; NewString(value, nameof(Rate)); } }
+
+        private string _track = "0";
+        public string TrackStr { get => _track; set { _track = value; NewString(value, nameof(Track)); } }
+
+        private long _curator = 0;
+        public long Curator { get => _curator; set { _curator = value; NewString(value.ToString(), nameof(Curator)); } }
+
+        private string _status = "0";
+        public string Status { get => _status; set { _status = value; NewString(value, nameof(Status)); } }
+
+        public RvExMember(long userId, string name, string telegram, string link, string rate, string trackStr, long curator, string status)
+        {
+            UserId = userId;
+            Name = name;
+            Telegram = telegram;
+            Link = link;
+            Rate = rate;
+            TrackStr = trackStr;
+            Curator = curator;
+            Status = status;
+
+            Data.RvExMembers.Add(this);
+        }
+
+        private void NewString(string value, string property)
+        {
+            sql database = Program.database;
+            database.Read($"UPDATE `RV_ExMembers` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
+        }
+
+        public static RvExMember Get(long userId)
+        {
+            foreach (RvExMember member in Data.RvExMembers)
+                if (member.UserId == userId)
+                    return member;
 
             return null;
         }
     }
 }
+

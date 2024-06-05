@@ -22,44 +22,59 @@ namespace RightVisionBot.User
         public long UserId;
 
         private string _name = "0";
-        public string Name { get => _name; set { _name = value; newString(value, nameof(Name)); } }
+        public string Name { get => _name; set { _name = value; NewString(value, nameof(Name)); } }
 
         private string _telegram = "0";
-        public string Telegram { get => _telegram; set { _telegram = value; newString(value, nameof(Telegram)); } }
+        public string Telegram { get => _telegram; set { _telegram = value; NewString(value, nameof(Telegram)); } }
 
         private string _link = "0";
-        public string Link { get => _link; set { _link = value; newString(value, nameof(Link)); } }
+        public string Link { get => _link; set { _link = value; NewString(value, nameof(Link)); } }
 
         private string _rate = "0";
-        public string Rate { get => _rate; set { _rate = value; newString(value, nameof(Rate)); } }
+        public string Rate { get => _rate; set { _rate = value; NewString(value, nameof(Rate)); } }
 
         private string _about = "0";
-        public string About { get => _about; set { _about = value; newString(value, nameof(About)); } }
+        public string About { get => _about; set { _about = value; NewString(value, nameof(About)); } }
 
         private string _whyYou = "0";
-        public string WhyYou { get => _whyYou; set { _whyYou = value; newString(value, nameof(WhyYou)); } }
+        public string WhyYou { get => _whyYou; set { _whyYou = value; NewString(value, nameof(WhyYou)); } }
 
         private long _curator = 0;
-        public long Curator { get => _curator; set { _curator = value; newLong(value, nameof(Curator)); } }
+        public long Curator { get => _curator; set { _curator = value; NewString(value.ToString(), nameof(Curator)); } }
         private string _status = "0";
-        public string Status { get => _status; set { _status = value; newString(value, nameof(Status)); } }
+        public string Status { get => _status; set { _status = value; NewString(value, nameof(Status)); } }
 
         private long _preListeningArtist = 0;
-        public long PreListeningArtist { get => _preListeningArtist; set { _preListeningArtist = value; newLong(value, nameof(PreListeningArtist)); } }
+        public long PreListeningArtist { get => _preListeningArtist; set { _preListeningArtist = value; NewString(value.ToString(), nameof(PreListeningArtist)); } }
 
-        public CriticVote CriticRate;
+        public CriticVote CriticRate = new();
 
-        private string newString(string value, string property)
-        { _OnPropertyChanged(property, value); return value; }
+        private void NewString(string value, string property) => Program.database.Read($"UPDATE `RV_Critics` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
 
-        private long newLong(long value, string property)
-        { newString(value.ToString(), property); return value; }
+        public RvCritic(long userId, string telegram)
+        {
+            UserId = userId;
+            Telegram = telegram;
 
-        public event Action<string> OnPropertyChanged = delegate { };   
-        private void _OnPropertyChanged(string property, string value)
-        { OnPropertyChanged(property); UpdateDatabase(property, value); }
+            Program.database.Read($"INSERT INTO `RV_Critics` (`telegram`, `userId`) VALUES ('{Telegram}', '{UserId}');", "");
+            Data.RvCritics.Add(this);
+        }
 
-        private void UpdateDatabase(string property, string value) => Program.database.Read($"UPDATE `RV_Critics` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
+        public RvCritic(long userId, string name, string telegram, string link, string rate, string about,string whyYou,long curator, string status, long preListeningArtist)
+        {
+            UserId = userId;
+            Name = name;
+            Telegram = telegram;
+            Link = link;
+            Rate = rate;
+            About = about;
+            WhyYou = whyYou;
+            Curator = curator;
+            Status = status;
+            PreListeningArtist = preListeningArtist;
+
+            Data.RvCritics.Add(this);
+        }
 
         public static RvCritic Get(long userId)
         {

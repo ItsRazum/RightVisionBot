@@ -19,30 +19,18 @@ namespace RightVisionBot.Back.Callbacks
         {
             long criticId;
             var callback = update.CallbackQuery;
-            var message = callback.Message;
-            var chat = message.Chat;
-            var from = callback.From;
+            var message = callback?.Message;
+            var chat = message?.Chat;
+            var from = callback?.From;
             long userId = from.Id;
-            var callbackQuery = callback.Data;
-            string fullname = callback.From.FirstName + callback.From.LastName;
+            var callbackQuery = callback?.Data;
+            string fullname = callback?.From.FirstName + callback?.From.LastName;
 
-            if (RvCritic.Get(userId).PreListeningArtist != 0)
+            if (RvCritic.Get(userId) != null && RvCritic.Get(userId).PreListeningArtist != 0)
                 await PreListeningCallbacks(botClient, callback);
 
             switch (callbackQuery)
             {
-                case "c_bronze":
-                    CriticRoot.SetCriticCategory(botClient, update, "🥉Bronze");
-                    break;
-                case "c_steel":
-                    CriticRoot.SetCriticCategory(botClient, update, "🥈Steel");
-                    break;
-                case "c_gold":
-                    CriticRoot.SetCriticCategory(botClient, update, "🥇Gold");
-                    break;
-                case "c_brilliant":
-                    CriticRoot.SetCriticCategory(botClient, update, "💎Brilliant");
-                    break;
                 case "c_send":
                     CriticRoot.EnterName(botClient, update);
                     break;
@@ -50,9 +38,9 @@ namespace RightVisionBot.Back.Callbacks
                     RvCritic rvCritic = RvCritic.Get(userId);
                     if (rvUser.RvLocation == RvLocation.PreListening)
                     {
-                        rvCritic.PreListeningArtist = 0;
                         long artistId = rvCritic.PreListeningArtist;
                         RvMember.Get(artistId).Track.Status = "waiting";
+                        rvCritic.PreListeningArtist = 0;
 
                         await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} закрыл предварительное прослушивание\n=====\nId:{callback.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
                     }
@@ -85,7 +73,7 @@ namespace RightVisionBot.Back.Callbacks
                     criticId = long.Parse(callbackQuery.Replace("c_accept-", ""));
 
                     RvCritic.Get(criticId).Curator = from.Id;
-                    await botClient.EditMessageTextAsync(message.Chat, callback.Message.MessageId, $"{message.Text}\n\nОтветственный за судью: {from.FirstName}", replyMarkup: Keyboard.cCategories(criticId));
+                    await botClient.EditMessageTextAsync(message.Chat, callback.Message.MessageId, $"{message.Text}\n\nОтветственный за судью: {from.FirstName}", replyMarkup: Keyboard.CCategories(criticId));
                     await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} взял кураторство над судьёй Id:{criticId}\n=====\nId:{userId}\nЯзык: {RvUser.Get(userId).Lang}", disableNotification: true);
                 }
                 else
@@ -95,9 +83,12 @@ namespace RightVisionBot.Back.Callbacks
                 if (rvUser.Has(Permission.Curate))
                 {
                     criticId = long.Parse(callbackQuery.Replace("c_deny-", ""));
+                    var rvCritic = RvCritic.Get(criticId);
 
-                    RvCritic.Get(criticId).Curator = from.Id;
-                    RvCritic.Get(criticId).Status = "denied";
+                    rvCritic.Curator = from.Id;
+                    rvCritic.Status = "denied";
+                    Data.RvCritics.Remove(rvCritic);
+                    RvUser.Get(criticId).ResetPermissions();
 
                     await botClient.EditMessageTextAsync(message.Chat, message.MessageId, $"{message.Text}\n\nОтветственный за судью: {from.FirstName}\n❌Заявка отклонена!");
                     await botClient.SendTextMessageAsync(criticId, string.Format(Language.GetPhrase("Critic_Messages_FormDenied", RvUser.Get(criticId).Lang), fullname), replyMarkup: Keyboard.InlineBack(rvUser, RvLocation.MainMenu));
@@ -106,13 +97,29 @@ namespace RightVisionBot.Back.Callbacks
                 else
                     await botClient.AnswerCallbackQueryAsync(callback.Id, Language.GetPhrase("Messages_NoPermission", rvUser.Lang), showAlert: true);
 
+
+            else if (callbackQuery.StartsWith("c_bronze-"))
+                CriticRoot.SetCriticCategory(botClient, update, "🥉Bronze");
+            else if (callbackQuery.StartsWith("c_silver-"))
+                CriticRoot.SetCriticCategory(botClient, update, "🥈Silver");
+            else if (callbackQuery.StartsWith("c_gold-"))
+                CriticRoot.SetCriticCategory(botClient, update, "🥇Gold");
+            else if (callbackQuery.StartsWith("c_brilliant-"))
+                CriticRoot.SetCriticCategory(botClient, update, "💎Brilliant");
+
+
             else if (callbackQuery.StartsWith("c_deny2-"))
                 if (rvUser.Has(Permission.Curate))
                 {
                     criticId = long.Parse(callbackQuery.Replace("c_deny2-", ""));
                     if (callback.From.Id == RvCritic.Get(criticId).Curator)
                     {
-                        RvCritic.Get(criticId).Status = "denied";
+                        var rvCritic = RvCritic.Get(criticId);
+
+                        rvCritic.Curator = from.Id;
+                        rvCritic.Status = "denied";
+                        Data.RvCritics.Remove(rvCritic);
+                        RvUser.Get(criticId).ResetPermissions();
 
                         await botClient.EditMessageTextAsync(message.Chat, message.MessageId, $"{message.Text}\n❌Заявка отклонена!");
                         await botClient.SendTextMessageAsync(criticId, string.Format(Language.GetPhrase("Critic_Messages_FormDenied", RvUser.Get(criticId).Lang), fullname), replyMarkup: Keyboard.InlineBack(rvUser, RvLocation.MainMenu));
