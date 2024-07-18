@@ -64,6 +64,8 @@ namespace RightVisionBot.Back
                 botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"{callback.Message.Text}\nКатегория: {category}\n\nКандидат был приглашён в эту беседу!");
                 botClient.SendTextMessageAsync(criticId, string.Format(Language.GetPhrase("Critic_Messages_FormAccepted", RvUser.Get(criticId).Lang), category, fullname));
                 botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{update.CallbackQuery.From.Username} выдал категорию {category2} судье Id:{criticId}", disableNotification: true);
+                
+                RvUser.Get(criticId).ResetPermissions();
                 RvCritic.Get(criticId).Status = category2;
                 RvUser.Get(criticId).Category = category2;
                 Program.UpdateStatus(criticId);

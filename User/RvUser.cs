@@ -4,7 +4,6 @@ using RightVisionBot.Types;
 using RightVisionBot.UI;
 using System.Text;
 using System.Timers;
-using RightVisionBot.Common;
 
 namespace RightVisionBot.User;
 
@@ -13,28 +12,94 @@ public class RvUser
     public long UserId;
 
     private string? _name;
-    public string? Name { get => _name; set { _name = value; NewString(value, nameof(Name)); } }
+    public string? Name 
+    { 
+        get => _name; 
+        set 
+        { 
+            _name = value; 
+            NewString(value, nameof(Name)); 
+        } 
+    }
 
     private Status _status = Status.User;
-    public Status Status { get => _status; set { _status = value; NewString(value.ToString(), nameof(Status)); } }
+    public Status Status 
+    { 
+        get => _status; 
+        set 
+        { 
+            _status = value;
+            ResetPermissions();
+            NewString(value.ToString(), nameof(Status)); 
+        } 
+    }
 
     private UserPermissions _permissions = new();
-    public UserPermissions Permissions { get => _permissions; set { _permissions = value; NewString(value.ToString(), "permissions"); } }
+    public UserPermissions Permissions 
+    { 
+        get => _permissions; 
+        set 
+        { 
+            _permissions = value; 
+            NewString(value.ToString(), "permissions"); 
+        } 
+    }
 
     private RvPunishments _punishments = new();
-    public RvPunishments Punishments { get => _punishments; set { _punishments = value; NewString(value.ToString(), nameof(Punishments)); } }
+    public RvPunishments Punishments 
+    { 
+        get => _punishments; 
+        set 
+        { 
+            _punishments = value; 
+            NewString(value.ToString(), nameof(Punishments)); 
+        } 
+    }
 
     private string _lang = "ru";
-    public string Lang { get => _lang; set { _lang = value; NewString(value, nameof(Lang)); } }
+    public string Lang 
+    { 
+        get => _lang; 
+        set 
+        { 
+            _lang = value; 
+            NewString(value, nameof(Lang)); 
+        } 
+    }
 
     private RvLocation _rvLocation = RvLocation.MainMenu;
-    public RvLocation RvLocation { get => _rvLocation; set { _rvLocation = value; NewString(value.ToString(), nameof(RvLocation)); } }
+    public RvLocation RvLocation 
+    { 
+        get => _rvLocation; 
+        set 
+        { 
+            _rvLocation = value; 
+            NewString(value.ToString(), nameof(RvLocation)); 
+        }
+    }
 
     private Role _role;
-    public Role Role { get => _role; set { _role = value; NewRole(value.ToString(), nameof(Role)); } }
+    public Role Role 
+    { 
+        get => _role; 
+        set 
+        { 
+            _role = value;
+            ResetPermissions();
+            NewRole(value.ToString(), nameof(Role)); 
+        } 
+    }
 
     private string _category = "none";
-    public string Category { get => _category; set { _category = value; NewString(value, nameof(Category)); } }
+    public string Category 
+    { 
+        get => _category; 
+        set 
+        { 
+            _category = value; 
+            NewString(value, nameof(Category)); 
+        } 
+    }
 
     public Rewards Rewards { get; set; }
 

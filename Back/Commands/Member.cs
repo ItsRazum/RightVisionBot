@@ -19,13 +19,13 @@ namespace RightVisionBot.Back.Commands
             long userId = message.From.Id;
 
             if (message.Text == Language.GetPhrase("Profile_Track_SendTrack", lang) + "♂" && message.Chat.Type == ChatType.Private)
-                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_SendTrack_Instruction", lang), replyMarkup: Keyboard.backButton(lang));
+                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_SendTrack_Instruction", lang), replyMarkup: Keyboard.BackButton(lang));
 
             else if (message.Text == Language.GetPhrase("Profile_Track_SendImage", lang) + "🖼" && message.Chat.Type == ChatType.Private)
-                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_SendImage_Instruction", lang), replyMarkup: Keyboard.backButton(lang));
+                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_SendImage_Instruction", lang), replyMarkup: Keyboard.BackButton(lang));
 
             else if (message.Text == Language.GetPhrase("Profile_Track_SendText", lang) + "📝" && message.Chat.Type == ChatType.Private)
-                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_SendText_Instruction", lang), replyMarkup: Keyboard.backButton(lang));
+                await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Track_SendText_Instruction", lang), replyMarkup: Keyboard.BackButton(lang));
         }
     }
 }

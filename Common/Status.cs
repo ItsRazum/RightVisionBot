@@ -1,8 +1,4 @@
-﻿using RightVisionBot.Back;
-using RightVisionBot.User;
-using Telegram.Bot.Types;
-
-namespace RightVisionBot.Common;
+﻿namespace RightVisionBot.Common;
 
 public enum Status
 {

@@ -71,6 +71,8 @@ namespace RightVisionBot.Back
                 await botClient.EditMessageTextAsync(chat, message.MessageId, $"{message.Text}\nКатегория: {category}\n\n✅Заявка на участие принята! Отныне кандидат является полноценным участником RightVision!");
                 await botClient.SendTextMessageAsync(memberId, string.Format(Language.GetPhrase("Member_Messages_FormAccepted", RvUser.Get(memberId).Lang), category, fullname));
                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} выдал категорию {category2} участнику Id:{memberId}\n=====\nId:{callback.From.Id}\nЯзык: {callbackRvUser.Lang}\nЛокация: {callbackRvUser.RvLocation}", disableNotification: true);
+
+                RvUser.Get(memberId).ResetPermissions();
                 RvMember.Get(memberId).Status = category2;
                 RvUser.Get(memberId).Category = category2;
                 Program.UpdateStatus(memberId);

@@ -1,5 +1,4 @@
-﻿using System.Text;
-using RightVisionBot.Types;
+﻿using RightVisionBot.Types;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -63,6 +62,11 @@ class Permissions
         Permission.Audit
     };
 
+    public static UserPermissions Designer = new()
+    {
+        Permission.CriticChat,          Permission.ChattingInCriticChat
+    };
+
     public static UserPermissions Admin = new(User + CriticAndMember + SeniorModerator + Curator + Developer + new UserPermissions()
     {
         Permission.Degrade,             Permission.DegradePermission,
@@ -84,11 +88,11 @@ class Permissions
         { Role.Admin, Admin },
         { Role.Curator, Curator },
         { Role.Developer, Developer },
+        { Role.Designer, Designer },
         { Role.Moderator, Moderator },
         { Role.SeniorModerator, SeniorModerator },
 
         { Role.TechAdmin, Empty },
-        { Role.Designer, Empty },
         { Role.Translator, Empty },
         { Role.None, Empty }
     };

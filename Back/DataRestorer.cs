@@ -97,27 +97,12 @@ namespace RightVisionBot.Back
                     RvUser rvUser = RvUser.Get(userId);
                     var fromMembers = database.Read($"SELECT `status` FROM `RV_Members` WHERE `userId` = '{userId}'", "status").FirstOrDefault();
                     var fromCritics = database.Read($"SELECT `status` FROM `RV_Critics` WHERE `userId` = '{userId}'", "status").FirstOrDefault();
-                    switch (fromCritics)
-                    {
-                        case "denied":
-                        case "unfinished":
-                        case null:
-                            break;
-                        default:
-                            rvUser.Category = fromCritics;
-                            break;
-                    }
+                    
+                    if (!string.IsNullOrEmpty(fromCritics) && fromCritics is not "denied" and "unfinished")
+                        rvUser.Category = fromCritics;
 
-                    switch (fromMembers)
-                    {
-                        case "denied":
-                        case "unfinished":
-                        case null:
-                            break;
-                        default:
-                            rvUser.Category = fromMembers;
-                            break;
-                    }
+                    if (!string.IsNullOrEmpty(fromMembers) && fromMembers is not "denied" and "unfinished")
+                        rvUser.Category = fromMembers;
                 }
             }
             Console.WriteLine("Категории восстановлены\n");
@@ -132,6 +117,7 @@ namespace RightVisionBot.Back
                     {
                         var rewardValues = rewardString.Split(":");
                         if (string.IsNullOrEmpty(rewardValues[0])) continue;
+
                         Reward reward = new(rewardValues[0], rewardValues[2]);
                         RvUser.Get(long.Parse(user["userId"])).Rewards.Add(reward);
                     }
@@ -152,6 +138,7 @@ namespace RightVisionBot.Back
                     foreach (var punishment in allPunishments)
                     {
                         if (punishment == "") continue;
+
                         var punishmentArgs = punishment.Split(";");
                         RvPunishment pun = new(
                             Enum.Parse<RvPunishment.PunishmentType>(punishmentArgs[0]),
@@ -289,7 +276,7 @@ namespace RightVisionBot.Back
                 }
                 Console.WriteLine("Актуализация завершена\n");
             }
-            /*
+            
             Console.WriteLine("Завершено. Восстановление карточек треков участников...");
             {
                 string[] columns = { "userId", "track", "image", "text" };
@@ -310,7 +297,7 @@ namespace RightVisionBot.Back
 
                 Console.WriteLine($"Восстановлено {i} карточек\n");
             }
-            */
+            
             Console.WriteLine("Восстановление оценок судей");
             {
                 var rates = database.ExtRead($"SELECT * FROM `RV_Rates`;",

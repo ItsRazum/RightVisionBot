@@ -1,10 +1,4 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using RightVisionBot.Common;
 
 //система динамической мультиязычности
@@ -27,8 +21,8 @@ namespace RightVisionBot.Back
         }
         public static string GetPhrase(string phraseName, string language)
         {
-            if (Phrases[language].ContainsKey(phraseName))
-                return Phrases[language][phraseName];
+            if (Phrases[language].TryGetValue(phraseName, out string? value))
+                return value;
 
             return Phrases[language].ContainsKey(phraseName) ? Phrases[language][phraseName] : "❌Phrase not found";
         }

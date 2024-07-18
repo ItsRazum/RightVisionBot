@@ -1,19 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using RightVisionBot.Back;
+﻿using RightVisionBot.Back;
 using RightVisionBot.Common;
 using RightVisionBot.Types;
 using RightVisionBot.User;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 
 //система отображения профилей пользователей
 namespace RightVisionBot.UI
@@ -48,7 +40,7 @@ namespace RightVisionBot.UI
             {
                 var query = $"SELECT `status` FROM RV_{role}s WHERE `userId` = {userId};";
                 var idList = Database.Read(query, "status");
-                return idList.FirstOrDefault() switch
+                return idList[0] switch
                 {
                     "denied" => Language.GetPhrase("Profile_Form_Status_Blocked", RvUser.Get(userId).Lang),
                     "waiting" => Language.GetPhrase("Profile_Form_Status_Waiting", RvUser.Get(userId).Lang),
@@ -114,7 +106,7 @@ namespace RightVisionBot.UI
             }
             else
             {
-                for (var i = 0; i <= 10; i++)
+                for (var i = 0; i <= standartCount; i++)
                     try
                     {
                         fullList.AppendLine("• " + rvUser.Permissions.Collection[i]);

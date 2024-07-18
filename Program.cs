@@ -44,7 +44,7 @@ namespace RightVisionBot
             while (true)
             {
                 string? command = Console.ReadLine();
-                if (command.StartsWith("send"))
+                if (command is not null && command.StartsWith("send"))
                 {
                     string[] commandWithArgs = command.Split(" ");
                     string msg = string.Join(" ", commandWithArgs.Skip(2));
@@ -71,7 +71,7 @@ namespace RightVisionBot
                     // Обработка входящих Callback'ов от сервера
                     if (!rvUser.Cooldown.Enabled && rvUser.Has(Permission.Messaging) && rvUser.RvLocation != RvLocation.Blacklist)
                     {
-                        if (callback.Data.StartsWith("c_"))
+                        if (callback.Data!.StartsWith("c_"))
                             await Callbacks.Critic.Callbacks(botClient, update, rvUser);
                         else if (callback.Data.StartsWith("m_"))
                             await Callbacks.Member.Callbacks(botClient, update, rvUser);
@@ -137,8 +137,8 @@ namespace RightVisionBot
 
                             if (message.Chat.Type == ChatType.Private && RvUser.Get(userId).RvLocation == RvLocation.EditTrack)
                             {
-                                RvMember.Get(userId).TrackStr = message.Text;
-                                database.Read($"UPDATE `RV_C{RvMember.Get(userId).Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
+                                RvMember.Get(userId)!.TrackStr = message.Text;
+                                database.Read($"UPDATE `RV_C{RvMember.Get(userId)!.Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
                                 await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
                                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
                                 await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(rvUser, message));

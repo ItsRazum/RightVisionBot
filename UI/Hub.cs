@@ -1,10 +1,8 @@
 ﻿using RightVisionBot.Back;
-using Telegram.Bot;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 using RightVisionBot.Common;
 using RightVisionBot.User;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 
 //код главного меню
 namespace RightVisionBot.UI

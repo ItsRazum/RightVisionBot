@@ -46,6 +46,7 @@ namespace RightVisionBot.Tracks
             {
                 await botClient.SendTextMessageAsync(callback.Message.Chat, Language.GetPhrase("Profile_Track_CreatingCard", RvUser.Get(userId).Lang));
                 TrackInfo track = new() { UserId = userId };
+                RvMember.Get(userId)!.Track = track;
                 Tracks.Add(track);
                 database.Read($"INSERT INTO `RV_Tracks`(`userId`) VALUES ({userId});", "");
                 TrackCard(false, botClient, callback:callback);
@@ -94,9 +95,9 @@ namespace RightVisionBot.Tracks
                     + $"\n\n{CardStatus(RvUser.Get(userId).Lang, IsTrackSent(userId), IsImageSent(userId), IsTextSent(userId))}", replyMarkup: inline);
         }
 
-        public static string IsTrackSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Track != null ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
-        public static string IsImageSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Image != null ? "Profile_Track_ImageSent" : "Profile_Track_ImageNotSent", RvUser.Get(userId).Lang) : null;
-        public static string IsTextSent(long userId) =>  GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Text != null  ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
+        public static string? IsTrackSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Track != null ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
+        public static string? IsImageSent(long userId) => GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Image != null ? "Profile_Track_ImageSent" : "Profile_Track_ImageNotSent", RvUser.Get(userId).Lang) : null;
+        public static string? IsTextSent(long userId) =>  GetTrack(userId) != null ? Language.GetPhrase(GetTrack(userId).Text != null  ? "Profile_Track_TrackSent" : "Profile_Track_TrackNotSent", RvUser.Get(userId).Lang) : null;
 
         public static TrackInfo? GetTrack(long userId)
         {

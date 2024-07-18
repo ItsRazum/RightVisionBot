@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RightVisionBot.Common;
+﻿using RightVisionBot.Common;
 using RightVisionBot.User;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -23,13 +19,19 @@ namespace RightVisionBot.Back.Commands.Admin
                     if (message.ReplyToMessage != null)
                     {
                         rvUser = RvUser.Get(message.ReplyToMessage.From.Id);
-                        newRole = Enum.Parse<Role>(message.Text.ToLower().Replace("назначить ", ""));
+                        var sb = new StringBuilder(message.Text.ToLower().Replace("назначить ", ""));
+                        sb[0] = char.ToUpper(sb[0]);
+                        
+                        newRole = Enum.Parse<Role>(sb.ToString());
                     }
                     else
                     {
                         string[] args = message.Text.ToLower().Replace("назначить ", "").Split(' ');
                         rvUser = RvUser.Get(long.Parse(args[0]));
-                        newRole = Enum.Parse<Role>(args[1]);
+                        var sb = new StringBuilder(args[1]);
+                        sb[0] = char.ToUpper(sb[0]);
+                        
+                        newRole = Enum.Parse<Role>(sb.ToString());
                     }
 
                     rvUser.Role = newRole;
