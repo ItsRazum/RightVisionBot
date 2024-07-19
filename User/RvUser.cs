@@ -204,7 +204,7 @@ public class RvUser
          Language.GetPhrase(!Has(Permission.Sending) ? "Profile_Sending_Status_Inactive" : "Profile_Sending_Status_Active", Lang));
 
         string optional = sending + formsStatus + rewards;
-        string profile = Status switch
+        return Status switch
         {
             Status.User => header + roleFormat + optional,
             Status.Member => header + roleFormat + string.Format(
@@ -220,15 +220,16 @@ public class RvUser
                 /*0*/category) + optional,
             Status.CriticAndMember => header + roleFormat + string.Format(
                 "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
-                /*0*/category,
-                /*1*/RvMember.Get(UserId).TrackStr) + optional,
+                /*0*/UserProfile.CategoryFormat(RvMember.Get(UserId).Status),
+                /*1*/UserProfile.CategoryFormat(RvCritic.Get(UserId).Status),
+                /*2*/RvMember.Get(UserId).TrackStr) + optional,
             Status.CriticAndExMember => header + roleFormat + string.Format(
                 "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
-                /*0*/category,
-                /*1*/RvExMember.Get(UserId).TrackStr) + optional,
+                /*0*/UserProfile.CategoryFormat(RvExMember.Get(UserId).Status),
+                /*1*/UserProfile.CategoryFormat(RvCritic.Get(UserId).Status),
+                /*2*/RvExMember.Get(UserId).TrackStr) + optional,
             _ => "Неизвестная ошибка"
         };
-        return profile;
     }
 
     public string ProfilePublic()
@@ -260,12 +261,14 @@ public class RvUser
                 /*0*/category) + optional,
             Status.CriticAndMember => header + roleFormat + string.Format(
                 "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
-                /*0*/category,
-                /*1*/"Скрыт") + optional,
+                /*0*/UserProfile.CategoryFormat(RvMember.Get(UserId).Status),
+                /*1*/UserProfile.CategoryFormat(RvCritic.Get(UserId).Status),
+                /*2*/"Скрыт") + optional,
             Status.CriticAndExMember => header + roleFormat + string.Format(
                 "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
-                /*0*/category,
-                /*1*/RvExMember.Get(UserId).TrackStr) + optional,
+                /*0*/UserProfile.CategoryFormat(RvExMember.Get(UserId).Status),
+                /*1*/UserProfile.CategoryFormat(RvCritic.Get(UserId).Status),
+                /*2*/ RvExMember.Get(UserId).TrackStr) + optional,
             _ => "Неизвестная ошибка"
         };
         return profile;

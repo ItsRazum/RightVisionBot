@@ -31,6 +31,25 @@ namespace RightVisionBot.UI
                 await botClient.SendTextMessageAsync(-4074101060,
                     $"Зарегистрирован новый пользователь @{message.From.Username} с языком {lang}",
                     disableNotification: true);
+                if(await botClient.GetChatMemberAsync(-1002218202119, userId) != null)
+                {
+                    await botClient.RestrictChatMemberAsync(-1002218202119, userId, new ChatPermissions()
+                    {
+                        CanAddWebPagePreviews = true,
+                        CanInviteUsers = true,
+                        CanManageTopics = true,
+                        CanSendAudios = true,
+                        CanSendVideos = true,
+                        CanSendDocuments = true,
+                        CanSendMessages = true,
+                        CanSendOtherMessages = true,
+                        CanSendPhotos = true,
+                        CanSendVideoNotes = true,
+                        CanSendVoiceNotes = true,
+                        CanSendPolls = true
+                    });
+                    await botClient.SendTextMessageAsync(userId, "С тебя были сняты все ограничения в группе зрителей! заходи здоровайся скорее: \n» https://t.me/RightVisionViewers «");
+                }
             }
             else
             {

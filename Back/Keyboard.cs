@@ -10,6 +10,11 @@ namespace RightVisionBot.Back
 {
     internal class Keyboard
     {
+        public static InlineKeyboardMarkup Registration => new(new[]
+        {
+            InlineKeyboardButton.WithUrl("Зарегистрироваться", "https://t.me/RightVisionBot?start=start")
+        });
+
         public static InlineKeyboardMarkup About(RvUser rvUser) => new(new[]
         {
             InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_main"),

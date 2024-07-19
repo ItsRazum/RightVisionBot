@@ -114,6 +114,49 @@ namespace RightVisionBot
                                     await botClient.BanChatMemberAsync(message.Chat, newUserId, DateTime.Now.AddMinutes(1));
                                 }
                                 break;
+                            case -1002218202119:
+                                if (RvUser.Get(newUserId) is not null)
+                                    if(RvUser.Get(newUserId).RvLocation != RvLocation.Blacklist)
+                                        await botClient.SendTextMessageAsync(message.Chat, $"Приветствую, {message.NewChatMembers[0].FirstName}, и добро пожаловать в группу!\n\n{RvUser.Get(newUserId).ProfilePublic}");
+                                    else 
+                                    {
+                                        await botClient.SendTextMessageAsync(message.Chat, $"Данный пользователь числится в чёрном списке RightVision! Удаляю его...");
+                                        await botClient.BanChatMemberAsync(message.Chat, newUserId);
+                                        await botClient.SendTextMessageAsync(newUserId, $"Уважаемый пользователь! Т.к. вы находитесь в чёрном списке - у вас нет доступа к группам RightVision.");
+                                    }
+                                else
+                                {
+                                    await botClient.RestrictChatMemberAsync(chatId, newUserId, new ChatPermissions()
+                                    {
+                                        CanAddWebPagePreviews = false,
+                                        CanChangeInfo = false,
+                                        CanInviteUsers = false,
+                                        CanManageTopics = false,
+                                        CanPinMessages = false,
+                                        CanSendAudios = false,
+                                        CanSendVideos = false,
+                                        CanSendMessages = false,
+                                        CanSendDocuments = false,
+                                        CanSendOtherMessages = false,
+                                        CanSendPhotos = false,
+                                        CanSendPolls = false,
+                                        CanSendVideoNotes = false,
+                                        CanSendVoiceNotes = false
+                                    });
+                                    await botClient.SendTextMessageAsync(message.Chat, $"Приветствую, {message.NewChatMembers[0].FirstName}, и добро пожаловать в группу! Перед тем, как начать общение с другими пользователями - тебе необходимо зарегистрироваться в боте. Это несложно, там всего два клика:" +
+                                        $"\n1. Нажать на кнопку \"Зарегистрироваться\" или перейти в бота(@RightVisionBot)" +
+                                        $"\n2. Нажать /start " +
+                                        $"\n3. Выбрать свой язык" +
+                                        $"\n4. Готово!" +
+                                        $"\nПосле того, как ты зарегистрируешься - с тебя будут сняты ограничения!" +
+                                        $"\nПо всем вопросам обращайся к @NtRazum или к @Gachimaker" +
+                                        $"\n" +
+                                        $"\nТакже напоминаю правила любых чатов RightVision!" +
+                                        $"\n1. Уважайте других: все равны." +
+                                        $"\n2. Не устраивайте срач: вся группа должна быть чистой, никакого спама/флуда/бессмысленного текста итд. Неадекватное поведение может также стать поводом для незамедлительного исключения из беседы." +
+                                        $"\n3. Строго запрещается безосновательно критиковать команду организаторов RightVision: критиковать можно в рамках желания помочь сделать ивент лучше для каждого, но не в рамках \"да зачем это всё, вы чё тупые?\"\nЖелаю приятного общения!", replyMarkup: Keyboard.Registration);
+                                }
+                                break;
                         }
                     }
 

@@ -21,7 +21,7 @@ namespace RightVisionBot.Back.Commands.Admin
                 int i = 0, b = 0;
                 var subs = from sub in Data.RvUsers where sub.Has(Permission.Sending) select sub.UserId;
                 foreach (var sub in subs)
-                    try { await botClient.SendTextMessageAsync(sub, newMessage); }
+                    try { await botClient.SendTextMessageAsync(sub, newMessage); i++; }
                     catch { b++; }
 
                 await botClient.SendTextMessageAsync(-4074101060, $"Новостная рассылка завершена. {i} получили сообщение, {b} не получили", disableNotification: true);
