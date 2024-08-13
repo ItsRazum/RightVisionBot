@@ -1,18 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using RightVisionBot.Back;
-using RightVisionBot.Common;
+﻿using RightVisionBot.Back;
 using RightVisionBot.Tracks;
-using RightVisionBot.UI;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 
 //корень судей, обработка всех событий от судей
 namespace RightVisionBot.User

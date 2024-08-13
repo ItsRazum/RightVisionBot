@@ -29,7 +29,7 @@ namespace RightVisionBot.UI
                     return rvUser.ProfilePrivate();
                 }
                 else
-                    return rvUser.ProfilePublic();
+                    return rvUser.ProfilePublic(RvUser.Get(userId).Lang);
             }
             return string.Empty;
         }

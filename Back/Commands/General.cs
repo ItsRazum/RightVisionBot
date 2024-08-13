@@ -46,12 +46,13 @@ public class General
         switch (msgText.ToLower())
         {
             case "/profile":
+            case "/profile@rightvisionbot":
                 if (message.ReplyToMessage != null && message.ReplyToMessage.From.IsBot)
                     await botClient.SendTextMessageAsync(message.Chat, "🧾 Мой профиль RightVision:\n———\n🪪Статус: БОТ!!!!!\n🎖Категория участия: 🤓Душнила\n📍Место проживания: Хостинг за 150р\n💿Трек: Never Gonna Give You Up");
                 else
                 {
                     var getId = message.ReplyToMessage == null ? message.From.Id : message.ReplyToMessage.From.Id;
-                    await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(getId), message));
+                    await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(getId), message, RvUser.Get(message.From.Id).Lang));
                 }
 
                 break;

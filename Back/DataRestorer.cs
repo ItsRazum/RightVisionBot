@@ -279,7 +279,7 @@ namespace RightVisionBot.Back
             
             Console.WriteLine("Завершено. Восстановление карточек треков участников...");
             {
-                string[] columns = { "userId", "track", "image", "text" };
+                string[] columns = { "userId", "track", "image", "text", "status" };
                 var cardList = database.ExtRead("SELECT * FROM `RV_Tracks`", columns);
                 int i = 0;
                 foreach (var card in cardList)
@@ -289,7 +289,8 @@ namespace RightVisionBot.Back
                         UserId = long.Parse(card[columns[0]]),
                         Track = string.IsNullOrEmpty(card[columns[1]]) ? null : card[columns[1]],
                         Image = string.IsNullOrEmpty(card[columns[2]]) ? null : card[columns[2]],
-                        Text =  string.IsNullOrEmpty(card[columns[3]]) ? null : card[columns[3]]
+                        Text =  string.IsNullOrEmpty(card[columns[3]]) ? null : card[columns[3]],
+                        Status = card[columns[4]],
                     };
                     RvMember.Get(trackCard.UserId).Track = trackCard;
                     i++;

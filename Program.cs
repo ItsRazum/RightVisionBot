@@ -115,15 +115,16 @@ namespace RightVisionBot
                                 }
                                 break;
                             case -1002218202119:
-                                if (RvUser.Get(newUserId) is not null)
-                                    if(RvUser.Get(newUserId).RvLocation != RvLocation.Blacklist)
-                                        await botClient.SendTextMessageAsync(message.Chat, $"Приветствую, {message.NewChatMembers[0].FirstName}, и добро пожаловать в группу!\n\n{RvUser.Get(newUserId).ProfilePublic}");
-                                    else 
+                                if (RvUser.Get(newUserId) != null)
+                                    if (RvUser.Get(newUserId).RvLocation != RvLocation.Blacklist)
+                                        await botClient.SendTextMessageAsync(message.Chat, $"Приветствую, {message.NewChatMembers[0].FirstName}, и добро пожаловать в группу!\n\n{RvUser.Get(newUserId).ProfilePublic("ru")}");
+                                    else
                                     {
                                         await botClient.SendTextMessageAsync(message.Chat, $"Данный пользователь числится в чёрном списке RightVision! Удаляю его...");
                                         await botClient.BanChatMemberAsync(message.Chat, newUserId);
                                         await botClient.SendTextMessageAsync(newUserId, $"Уважаемый пользователь! Т.к. вы находитесь в чёрном списке - у вас нет доступа к группам RightVision.");
                                     }
+                                    
                                 else
                                 {
                                     await botClient.RestrictChatMemberAsync(chatId, newUserId, new ChatPermissions()
@@ -144,7 +145,7 @@ namespace RightVisionBot
                                         CanSendVoiceNotes = false
                                     });
                                     await botClient.SendTextMessageAsync(message.Chat, $"Приветствую, {message.NewChatMembers[0].FirstName}, и добро пожаловать в группу! Перед тем, как начать общение с другими пользователями - тебе необходимо зарегистрироваться в боте. Это несложно, там всего два клика:" +
-                                        $"\n1. Нажать на кнопку \"Зарегистрироваться\" или перейти в бота(@RightVisionBot)" +
+                                        $"\n1. Нажать на кнопку \"Зарегистрироваться\" или перейти в бота (@RightVisionBot)" +
                                         $"\n2. Нажать /start " +
                                         $"\n3. Выбрать свой язык" +
                                         $"\n4. Готово!" +
@@ -184,7 +185,7 @@ namespace RightVisionBot
                                 database.Read($"UPDATE `RV_C{RvMember.Get(userId)!.Status}` SET `track` = '{message.Text}' WHERE `userId` = {userId};", "");
                                 await botClient.SendTextMessageAsync(message.Chat, Language.GetPhrase("Profile_Member_Track_Updated", rvUser.Lang));
                                 await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{message.From.Username} сменил свой трек\n=====\nId:{message.From.Id}\nЯзык: {rvUser.Lang}\nЛокация: {rvUser.RvLocation}", disableNotification: true);
-                                await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(rvUser, message));
+                                await botClient.SendTextMessageAsync(message.Chat, UserProfile.Profile(message), replyMarkup: Keyboard.ProfileOptions(rvUser, message, rvUser.Lang));
                             }
                         }
                     }
@@ -192,7 +193,30 @@ namespace RightVisionBot
             }
             catch (Exception e)
             {
-                await botClient.SendTextMessageAsync(-4074101060, $"Произошла ошибка: {e.Message}\n\nСтек вызовов:\n{e.StackTrace}");
+                var message = update.Message;
+                string sender = string.Empty;
+                if (message != null && message.From != null)
+                {
+                    if(RvUser.Get(message.From.Id) != null)
+                    {
+                        sender =
+                            $"\n\nПользователь: @{message?.From?.Username}" +
+                            $"\nId:{message?.From.Id}" +
+                            $"\nЛокация: {RvUser.Get(message!.From!.Id).RvLocation}";
+
+                        await botClient.SendTextMessageAsync(message.Chat, "Произошла необработанная ошибка, пожалуйста, вернись в главное меню. Если ошибка повторяется - свяжись с @NtRazum");
+                    }
+
+
+                    else
+                        sender =
+                            $"\n\nПользователь: @{message?.From?.Username}" +
+                            $"\nId:{message?.From.Id}" +
+                            $"\nПользователь не зарегистрирован у бота";
+                }
+                    
+
+                await botClient.SendTextMessageAsync(-4074101060, $"Произошла ошибка: {e.Message}\n\nСтек вызовов:\n{e.TargetSite}\n\n{e.StackTrace}{sender}");
                 Console.WriteLine(e.Message + JsonConvert.SerializeObject(e));
             }
         }

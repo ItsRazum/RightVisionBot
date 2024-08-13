@@ -232,15 +232,15 @@ public class RvUser
         };
     }
 
-    public string ProfilePublic()
+    public string ProfilePublic(string lang)
     {
-        var header = string.Format(Language.GetPhrase("Profile_Global_Header", Lang), Name);
+        var header = string.Format(Language.GetPhrase("Profile_Global_Header", lang), Name);
         string roleFormat = Role == Role.None
-        ? Language.GetUserStatusString(Status, Lang)
-        : Language.GetUserStatusString(Status, Lang) + "\n" + string.Format(Language.GetPhrase("Profile_Role", Lang), Language.GetUserRoleString(Role, Lang));
+        ? Language.GetUserStatusString(Status, lang)
+        : Language.GetUserStatusString(Status, lang) + "\n" + string.Format(Language.GetPhrase("Profile_Role", lang), Language.GetUserRoleString(Role, lang));
         string category = UserProfile.CategoryFormat(Category);
         StringBuilder rewards = new();
-        rewards.AppendLine(Language.GetPhrase("Profile_Form_Rewards", Lang));
+        rewards.AppendLine(Language.GetPhrase("Profile_Form_Rewards", lang));
         foreach (var reward in Rewards.Collection)
             rewards.AppendLine("| " + reward.Value.Icon + reward.Key + " – " + reward.Value.Description);
         
@@ -249,23 +249,23 @@ public class RvUser
         {
             Status.User => header + roleFormat + optional,
             Status.Member => header + roleFormat + string.Format(
-                "\n" + Language.GetPhrase("Profile_Member_Layout", Lang),
+                "\n" + Language.GetPhrase("Profile_Member_Layout", lang),
                 /*0*/ category,
                 /*1*/ "Скрыт") + optional,
             Status.ExMember => header + roleFormat + string.Format(
-                "\n" + Language.GetPhrase("Profile_Member_Layout", Lang),
+                "\n" + Language.GetPhrase("Profile_Member_Layout", lang),
                 /*0*/ category,
                 /*1*/ RvExMember.Get(UserId).TrackStr) + optional,
             Status.Critic => header + roleFormat + string.Format(
-                "\n" + Language.GetPhrase("Profile_Critic_Layout", Lang),
+                "\n" + Language.GetPhrase("Profile_Critic_Layout", lang),
                 /*0*/category) + optional,
             Status.CriticAndMember => header + roleFormat + string.Format(
-                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
+                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", lang),
                 /*0*/UserProfile.CategoryFormat(RvMember.Get(UserId).Status),
                 /*1*/UserProfile.CategoryFormat(RvCritic.Get(UserId).Status),
                 /*2*/"Скрыт") + optional,
             Status.CriticAndExMember => header + roleFormat + string.Format(
-                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", Lang),
+                "\n" + Language.GetPhrase("Profile_CriticAndMember_Layout", lang),
                 /*0*/UserProfile.CategoryFormat(RvExMember.Get(UserId).Status),
                 /*1*/UserProfile.CategoryFormat(RvCritic.Get(UserId).Status),
                 /*2*/ RvExMember.Get(UserId).TrackStr) + optional,

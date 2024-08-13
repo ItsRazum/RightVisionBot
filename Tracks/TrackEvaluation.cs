@@ -1,17 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RightVisionBot.Back;
+﻿using RightVisionBot.Back;
 using RightVisionBot.Common;
 using RightVisionBot.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-// ReSharper disable All
-
-
 
 
 // Система оценивания треков
@@ -22,17 +14,65 @@ namespace RightVisionBot.Tracks
         public long UserId;
 
         private long _artistId = 0;
-        public long ArtistId { get => _artistId; set { _artistId = value; NewLong(value, nameof(ArtistId)); } }
+        public long ArtistId 
+        { 
+            get => _artistId; 
+            set 
+            { 
+                _artistId = value; 
+                NewLong(value, nameof(ArtistId)); 
+            } 
+        }
         private int _general = 0;
-        public int General { get => _general; set { _general = value; NewLong(value, nameof(General)); } }
+        public int General 
+        { 
+            get => _general;
+            set 
+            { 
+                _general = value; 
+                NewLong(value, nameof(General)); 
+            } 
+        }
         private int _rate1 = 0;
-        public int Rate1 { get => _rate1; set { _rate1 = value; NewLong(value, nameof(Rate1)); } }
+        public int Rate1 
+        { 
+            get => _rate1; 
+            set 
+            {
+                _rate1 = value; 
+                NewLong(value, nameof(Rate1)); 
+            } 
+        }
         private int _rate2 = 0;
-        public int Rate2 { get => _rate2; set { _rate2 = value; NewLong(value, nameof(Rate2)); } }
+        public int Rate2 
+        { 
+            get => _rate2;
+            set 
+            {
+                _rate2 = value; 
+                NewLong(value, nameof(Rate2));
+            } 
+        }
         private int _rate3 = 0;
-        public int Rate3 { get => _rate3; set { _rate3 = value; NewLong(value, nameof(Rate3)); } }
+        public int Rate3 
+        { 
+            get => _rate3; 
+            set 
+            { 
+                _rate3 = value; 
+                NewLong(value, nameof(Rate3)); 
+            } 
+        }
         private int _rate4 = 0;
-        public int Rate4 { get => _rate4; set { _rate4 = value; NewLong(value, nameof(Rate4)); } }
+        public int Rate4 
+        { 
+            get => _rate4; 
+            set 
+            {
+                _rate4 = value; 
+                NewLong(value, nameof(Rate4)); 
+            }
+        }
 
         private void NewLong(long value, string property) => Program.database.Read($"UPDATE `RV_Rates` SET `{property.ToLower()}` = '{value}' WHERE `userId` = {UserId}", "");
     }
@@ -102,33 +142,46 @@ namespace RightVisionBot.Tracks
         {
             if (rvUser.Has(Permission.Evaluation))
             {
-                long userId = callback.From.Id;
-
-                var artistId = database.Read($"SELECT `userId` FROM `RV_C{RvCritic.Get(userId).Status}` WHERE `status` = 'ok' AND `userId` != {userId} AND `{userId}` = -1 LIMIT 1", "userId").FirstOrDefault();
-                if (String.IsNullOrEmpty(artistId))
+                var userId = callback.From.Id;
+                if (TryGetFreeTrack(RvCritic.Get(rvUser.UserId), out TrackInfo? track))
+                {
+                    var artistId = track.UserId;
+                    var trackName = RvMember.Get(artistId).TrackStr;
+                    CriticVote vote = new()
+                    {
+                        UserId = userId,
+                        ArtistId = artistId,
+                        General = 0,
+                    };
+                    RvCritic.Get(userId).CriticRate = vote;
+                    database.Read($"INSERT INTO `RV_Rates` (`userId`, `artistId`) VALUES ({userId}, {artistId});", "");
+                    await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(track.Track!), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(artistId).Status}");
+                    await botClient.SendTextMessageAsync(callback.Message.Chat, "Выдай оценку инструменталу", replyMarkup: Keyboard.Evaluation(userId));
+                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} начал оценивание ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                }
+                else
                 {
                     await botClient.AnswerCallbackQueryAsync(callback.Id, "Свободные треки для оценивания не найдены!", showAlert: true);
                     await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
                 }
-                else
-                {
-                    var trackName = RvMember.Get(long.Parse(artistId)).TrackStr;
-                    var trackCard = RvMember.Get(long.Parse(artistId)).Track;
-                    CriticVote vote = new()
-                    {
-                        UserId = userId,
-                        ArtistId = artistId.FirstOrDefault(),
-                        General = 0,
-                    };
-                    RvCritic.Get(userId).CriticRate = vote;
-                    database.Read($"INSERT INTO `RV_Rates` (`userId`, `artistId`) VALUES ({userId}, {artistId.FirstOrDefault()});", "");
-                    await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackCard.Track), caption: $"Название: {trackName.FirstOrDefault()}\nКатегория: {RvMember.Get(vote.ArtistId).Status}");
-                    await botClient.SendTextMessageAsync(callback.Message.Chat, "Выдай оценку инструменталу", replyMarkup: Keyboard.Evaluation(userId));
-                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} начал оценивание ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
-                }
             }
             else
                 Permissions.NoPermission(callback.Message.Chat);
+        }
+
+        public static bool TryGetFreeTrack(RvCritic critic, out TrackInfo? track)
+        {
+            var tracks = Data.RvMembers
+                .Where(m =>
+                m.Track != null
+                && m.Status == critic.Status
+                && m.UserId != critic.UserId)
+                .Select(m => m.Track!)
+                .Where(t => t.Status == "ok");
+
+            
+            track = tracks.Any() ? tracks.First() : null;
+            return tracks.Any();
         }
 
         public static string EnterRate(long userId, string property)
@@ -161,7 +214,11 @@ namespace RightVisionBot.Tracks
             else                      { vote.Rate1 = 0; vote.General = 0; return $"Выдай оценку инструменталу"; }
         }
 
-        public static bool RatesNot0(long userId) => Get(userId).Rate1 != 0 && Get(userId).Rate2 != 0 && Get(userId).Rate3 != 0 && Get(userId).Rate4 != 0;
+        public static bool RatesNot0(long userId) => 
+            Get(userId).Rate1 != 0 
+            && Get(userId).Rate2 != 0 
+            && Get(userId).Rate3 != 0 
+            && Get(userId).Rate4 != 0;
 
         public static void ChangeRate(ITelegramBotClient botClient, Update update)
         {
@@ -193,26 +250,30 @@ namespace RightVisionBot.Tracks
 
         public static async Task NextTrack(ITelegramBotClient botClient, CallbackQuery callback, CriticVote vote)
         {
-            ReplyKeyboardMarkup back = new(new[] { new[] { new KeyboardButton("Назад") } })
-            { ResizeKeyboard = true };
+            Track.GetTrack(vote.ArtistId).Status = "rated";
             long userId = callback.From.Id;
-            var artistId = database.Read($"SELECT `userId` FROM `RV_C{RvCritic.Get(userId).Status}` WHERE `status` = 'ok' AND `userId` != {userId} AND `{userId}` = -1 LIMIT 1", "userId").FirstOrDefault();
-            if (string.IsNullOrEmpty(artistId))
+
+            if (TryGetFreeTrack(RvCritic.Get(userId), out TrackInfo? track))
             {
-                await botClient.SendTextMessageAsync(callback.Message.Chat, "Свободные треки для оценивания не найдены!", replyMarkup: back);
-                await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
+                var artistId = track!.UserId;
+                var trackName = RvMember.Get(artistId).TrackStr;
+
+                vote.General = 0; vote.Rate1 = 0;
+                vote.Rate2 = 0; vote.Rate3 = 0;
+                vote.Rate4 = 0; vote.ArtistId = artistId;
+
+                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackName), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(vote.ArtistId).Status}");
+                await botClient.SendTextMessageAsync(callback.Message.Chat, "Выдай оценку инструменталу", replyMarkup: Keyboard.Evaluation(userId));
+                database.Read($"UPDATE `RV_Rates` SET `artistId` = {artistId} WHERE `userId` = {userId}", "");
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} начал оценивание ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
             }
             else
             {
-                var trackName = RvMember.Get(long.Parse(artistId)).TrackStr;
-                var trackCard = RvMember.Get(long.Parse(artistId)).Track;
-                vote.General = 0;  vote.Rate1 = 0; 
-                vote.Rate2 = 0;    vote.Rate3 = 0; 
-                vote.Rate4 = 0;    vote.ArtistId = long.Parse(artistId);
-                await botClient.SendDocumentAsync(callback.Message.Chat, new InputFileId(trackName), caption: $"Название: {trackName}\nКатегория: {RvMember.Get(vote.ArtistId).Status}");
-                await botClient.SendTextMessageAsync(callback.Message.Chat, "Выдай оценку инструменталу", replyMarkup: Keyboard.Evaluation(userId));
-                database.Read($"UPDATE `RV_Rates` SET `artistId` = {artistId.FirstOrDefault()} WHERE `userId` = {userId}", "");
-                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} начал оценивание ремикса\n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                ReplyKeyboardMarkup back = new(new[] { new[] { new KeyboardButton("Назад") } })
+                { ResizeKeyboard = true };
+                database.Read($"DELETE FROM `RV_Rates` WHERE `userId` = {userId}", "");
+                await botClient.SendTextMessageAsync(callback.Message.Chat, "Свободные треки для оценивания не найдены!", replyMarkup: back);
+                await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId, $"Добро пожаловать в судейское меню, коллега! Если ты являешься куратором - для тебя доступно предварительное прослушивание. В любом случае тебе доступно оценивание ремиксов твоей категории: {RvCritic.Get(userId).Status}", replyMarkup: Keyboard.criticMenu);
             }
         }
 

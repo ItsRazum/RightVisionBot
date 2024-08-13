@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
-using Telegram.Bot;
-using RightVisionBot.Common;
-using RightVisionBot.User;
-using System.Text.RegularExpressions;
+﻿using RightVisionBot.Common;
 using RightVisionBot.Tracks;
-using Telegram.Bot.Types.ReplyMarkups;
+using RightVisionBot.User;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace RightVisionBot.Back.Callbacks
 {
@@ -134,10 +127,10 @@ namespace RightVisionBot.Back.Callbacks
         {
             var message = callback.Message;
             var chat = message.Chat;
-            var from = message.From;
+            var from = callback.From;
             var callbackQuery = callback.Data;
-            long userId = from.Id;
-            RvMember artistRvMember = RvMember.Get(RvCritic.Get(userId).PreListeningArtist);
+            long userId = callback.From.Id;
+            RvMember artistRvMember;
 
             switch (callbackQuery)
             {
@@ -145,20 +138,26 @@ namespace RightVisionBot.Back.Callbacks
                     await botClient.EditMessageTextAsync(chat, message.MessageId, "Выбери категорию", replyMarkup: Keyboard.PreListeningCategories);
                     break;
                 case "c_blockremix":
+                    artistRvMember = RvMember.Get(RvCritic.Get(userId).PreListeningArtist);
                     await botClient.EditMessageTextAsync(chat, message.MessageId, $"Ты уверен, что хочешь заблокировать ремикс \"{artistRvMember.TrackStr}\"?", replyMarkup: Keyboard.YesNo);
                     break;
                 case "c_blockremix_yes":
+                    artistRvMember = RvMember.Get(RvCritic.Get(userId).PreListeningArtist);
                     artistRvMember.Status = "denied";
                     await botClient.AnswerCallbackQueryAsync(callback.Id, "Ремикс заблокирован!");
                     await botClient.SendTextMessageAsync(artistRvMember.UserId, Language.GetPhrase("Member_Messages_PreListening_Blocked", RvUser.Get(artistRvMember.UserId).Lang));
-                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} заблокировал ремикс {artistRvMember.Track} \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} заблокировал ремикс {artistRvMember.TrackStr} \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
                     await PreListening.NextTrack(botClient, callback);
                     break;
                 case "c_blockremix_no":
                     await botClient.EditMessageTextAsync(chat, message.MessageId, "Выбери действие", replyMarkup: Keyboard.actions);
                     break;
                 case "c_acceptremix":
-                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} одобрил ремикс {artistRvMember.Track} \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                    Console.WriteLine("userId: " + userId);
+                    Console.WriteLine("PreListeningArtist: " + RvCritic.Get(userId).PreListeningArtist);
+                    Console.WriteLine("RvMember: " + RvMember.Get(RvCritic.Get(userId).PreListeningArtist));
+                    artistRvMember = RvMember.Get(RvCritic.Get(userId).PreListeningArtist);
+                    await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{from.Username} одобрил ремикс {artistRvMember.TrackStr} \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
                     await botClient.EditMessageTextAsync(message.Chat, message.MessageId, "Ремикс допущен к дальнейшему оцениванию!");
                     artistRvMember.Track.Status = "ok";
                     await PreListening.NextTrack(botClient, callback);
@@ -167,13 +166,14 @@ namespace RightVisionBot.Back.Callbacks
 
             if (callbackQuery.StartsWith("c_changeTo_"))
             {
+                artistRvMember = RvMember.Get(RvCritic.Get(userId).PreListeningArtist);
                 string category = callbackQuery.Substring(11);
                 RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Status = category;
                 MemberRoot.ChangeMemberCategory(artistRvMember.UserId, artistRvMember.Status);
                 await botClient.AnswerCallbackQueryAsync(callback.Id, "Смена категории прошла успешно!");
                 await botClient.EditMessageTextAsync(chat, message.MessageId, "Выбери действие", replyMarkup: Keyboard.actions);
                 await botClient.SendTextMessageAsync(artistRvMember.UserId, string.Format(Language.GetPhrase("Member_Messages_PreListening_CategoryChanged", RvUser.Get(userId).Lang), category));
-                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} сменил категорию ремикса {RvMember.Get(RvCritic.Get(userId).PreListeningArtist).Track} на Brilliant \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
+                await botClient.SendTextMessageAsync(-4074101060, $"Пользователь @{callback.From.Username} сменил категорию ремикса {RvMember.Get(RvCritic.Get(userId).PreListeningArtist).TrackStr} на {category} \n=====\nId:{callback.From.Id}\nЯзык: {RvUser.Get(userId).Lang}\nЛокация: {RvUser.Get(userId).RvLocation}", disableNotification: true);
             }
         }
     }

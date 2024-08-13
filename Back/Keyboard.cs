@@ -33,26 +33,26 @@ namespace RightVisionBot.Back
         });
         //=======
 
-        public static InlineKeyboardMarkup ProfileOptions(RvUser rvUser, Message message)
+        public static InlineKeyboardMarkup ProfileOptions(RvUser rvUser, Message message, string lang)
         {
             InlineKeyboardButton[] top = new[]
             {
-                InlineKeyboardButton.WithCallbackData("🗒"+Language.GetPhrase("Keyboard_Choice_PermissionsList", rvUser.Lang), $"menu_permissions-{rvUser.UserId}"),
-                InlineKeyboardButton.WithCallbackData("👨‍⚖️"+Language.GetPhrase("Keyboard_Choice_PunishmentsHistory", rvUser.Lang), $"menu_history-{rvUser.UserId}")
+                InlineKeyboardButton.WithCallbackData("🗒"+Language.GetPhrase("Keyboard_Choice_PermissionsList", lang), $"menu_permissions-{rvUser.UserId}"),
+                InlineKeyboardButton.WithCallbackData("👨‍⚖️"+Language.GetPhrase("Keyboard_Choice_PunishmentsHistory", lang), $"menu_history-{rvUser.UserId}")
             };
 
-            InlineKeyboardButton[] back = new[] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", rvUser.Lang), "menu_back") };
+            InlineKeyboardButton[] back = new[] { InlineKeyboardButton.WithCallbackData("« " + Language.GetPhrase("Keyboard_Choice_Back", lang), "menu_back") };
 
             InlineKeyboardButton[] criticMenu = new[]
-                { InlineKeyboardButton.WithCallbackData("📱" + Language.GetPhrase("Keyboard_Choice_Critic_Menu_Open", rvUser.Lang), "c_openmenu"), };
+                { InlineKeyboardButton.WithCallbackData("📱" + Language.GetPhrase("Keyboard_Choice_Critic_Menu_Open", lang), "c_openmenu"), };
 
             InlineKeyboardButton[] bottom = new[]
-                { InlineKeyboardButton.WithCallbackData("📨" + Language.GetPhrase("Keyboard_Choice_Apply", rvUser.Lang), "menu_forms"), };
+                { InlineKeyboardButton.WithCallbackData("📨" + Language.GetPhrase("Keyboard_Choice_Apply", lang), "menu_forms"), };
 
             InlineKeyboardButton[] memberButtons = new[]
             {
-                InlineKeyboardButton.WithCallbackData("✏️" + Language.GetPhrase("Keyboard_Choice_EditTrack", rvUser.Lang), "m_edittrack"),
-                InlineKeyboardButton.WithCallbackData("📇" + Language.GetPhrase("Keyboard_Choice_SendTrack", rvUser.Lang), "m_openmenu"),
+                InlineKeyboardButton.WithCallbackData("✏️" + Language.GetPhrase("Keyboard_Choice_EditTrack", lang), "m_edittrack"),
+                InlineKeyboardButton.WithCallbackData("📇" + Language.GetPhrase("Keyboard_Choice_SendTrack", lang), "m_openmenu"),
             };
             
             InlineKeyboardButton[] memberOptions = memberButtons;

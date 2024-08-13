@@ -21,7 +21,7 @@ namespace RightVisionBot.Back.Callbacks
                     MemberRoot.EnterName(botClient, update);
                     break;
                 case "m_openmenu":
-                    await Track.Send(botClient, callback: callback);
+                    Track.Send(botClient, callback: callback);
                     break;
                 case "m_edittrack":
                     Program.UpdateRvLocation(callbackUserId, RvLocation.EditTrack);

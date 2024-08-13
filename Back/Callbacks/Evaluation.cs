@@ -92,14 +92,26 @@ namespace RightVisionBot.Back.Callbacks
                     break;
                 case "r_send":
                     {
+                        var critic = RvCritic.Get(callbackUserId);
                         double finalRate = (vote.Rate1 + vote.Rate2 + vote.Rate3 + vote.Rate4) / 4.0;
+
+                        if(!database.Read(
+                            $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS " +
+                            $"WHERE TABLE_NAME = 'RV_C{critic.UserId}' " +
+                            $"AND TABLE_SCHEMA = 'RightVision'",
+                            "COLUMN_NAME")
+                            .Contains(critic.UserId.ToString()))
+                        {
+                            database.Read($"ALTER TABLE `RV_C{critic.Status}` ADD `1305332660` DOUBLE NOT NULL DEFAULT '-1' AFTER `status`;", "");
+                        }
+
+                        database.Read($"UPDATE `RV_C{critic.Status}` SET `{critic.UserId}` = {finalRate} WHERE `userId` = {vote.ArtistId};", "");
 
                         await botClient.EditMessageTextAsync(
                             chatId: message.Chat,
                             messageId: update.CallbackQuery.Message.MessageId,
-                            text: update.CallbackQuery.Message.Text + $"\n\n{vote.Rate1}+{vote.Rate2}+{vote.Rate3}+{vote.Rate4}={vote.Rate1 + vote.Rate2 + vote.Rate3 + vote.Rate4} / 4\nИтоговая оценка: {finalRate}",
+                            text: update.CallbackQuery.Message.Text + $"\n\n{vote.Rate1}+{vote.Rate2}+{vote.Rate3}+{vote.Rate4}={vote.Rate1 + vote.Rate2 + vote.Rate3 + vote.Rate4} / 4\nИтого: {finalRate}\nОценка успешно занесена в базу данных, ты можешь приступить к оцениванию следующего трека",
                             replyMarkup: Keyboard.NextTrack);
-                        database.Read($"UPDATE `RV_C{RvCritic.Get(callbackUserId).Status}` SET `{callbackUserId}` = {finalRate} WHERE `userId` = {vote.ArtistId};", "");
                     }
                     break;
                 case "r_nexttrack":

@@ -60,7 +60,7 @@ namespace RightVisionBot.Back.Callbacks
                     }
                 };
                 await botClient.EditMessageTextAsync(callback.Message.Chat, callback.Message.MessageId,
-                    RvUser.Get(plugMessage.From.Id).ProfilePublic(), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(plugMessage.From.Id), plugMessage));
+                    RvUser.Get(plugMessage.From.Id).ProfilePublic(RvUser.Get(callback.From.Id).Lang), replyMarkup: Keyboard.ProfileOptions(RvUser.Get(plugMessage.From.Id), plugMessage, RvUser.Get(callback.From.Id).Lang));
             }
 
             else if (callbackQuery.StartsWith("permissions_minimize-"))
